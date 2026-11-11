@@ -12,6 +12,7 @@ Future<void> showSleepTimerBottomSheet(BuildContext context) {
     context: context,
     backgroundColor: Colors.transparent,
     isScrollControlled: false,
+    constraints: const BoxConstraints(maxWidth: 540),
     builder: (modalContext) => const _SleepTimerBottomSheetContent(),
   );
 }
@@ -251,6 +252,7 @@ class _SleepTimerBottomSheetContent extends StatelessWidget {
   }
 
   void _showFeedback(BuildContext context, String message) {
+    final isLarge = MediaQuery.sizeOf(context).width >= 600;
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -274,7 +276,7 @@ class _SleepTimerBottomSheetContent extends StatelessWidget {
         backgroundColor: AppColors.darkCardSurface,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 96),
+        margin: EdgeInsets.fromLTRB(16, 0, 16, isLarge ? 16 : 96),
         duration: const Duration(seconds: 2),
       ),
     );

@@ -1,7 +1,7 @@
 <div align="center">
 
 # جامع تلاوات المنشاوي
-### Al-Minshawi Quran Recitations App (v1.2.1)
+### Al-Minshawi Quran Recitations App (v1.2.2)
 
 تطبيق قرآني شامل للتراث الصوتي لفضيلة الشيخ محمد صديق المنشاوي (رحمه الله)  
 مبني بـ Flutter وفق معمارية Clean Architecture، مجاني 100% وبدون أي إعلانات.
@@ -19,11 +19,11 @@
   <a href="https://apps.microsoft.com/detail/9npbg9mjslhp">
     <img src="https://img.shields.io/badge/Microsoft%20Store-Available%20Now-0078d4?style=for-the-badge&logo=windows11&logoColor=white" alt="Microsoft Store">
   </a>
-  <a href="https://apkpure.com/p/com.minshawi.recitations">
-    <img src="https://img.shields.io/badge/Download%20on-APKPure-00c853?style=for-the-badge&logo=android&logoColor=white" alt="Download on APKPure">
+  <a href="https://github.com/a7mdabdoo/minshawi-recitations-releases/releases/download/v1.2.2/al-minshawi-recitations-v1.2.2.apk">
+    <img src="https://img.shields.io/badge/Download-Release%20APK%20v1.2.2-2563eb?style=for-the-badge&logo=github&logoColor=white" alt="Download APK">
   </a>
-  <a href="https://github.com/a7mdabdoo/minshawi-recitations-app/releases/download/v1.2.1/al-minshawi-recitations-v1.2.1.apk">
-    <img src="https://img.shields.io/badge/Download-Release%20APK%20v1.2.1-2563eb?style=for-the-badge&logo=github&logoColor=white" alt="Download APK">
+  <a href="https://github.com/a7mdabdoo/minshawi-recitations-releases/releases/latest">
+    <img src="https://img.shields.io/badge/GitHub-All%20Releases-1f2937?style=for-the-badge&logo=github&logoColor=white" alt="GitHub Releases">
   </a>
   <a href="PRIVACY_POLICY.md">
     <img src="https://img.shields.io/badge/Privacy%20Policy-100%25%20Free%20&%20No%20Ads-D4AF37?style=for-the-badge" alt="Privacy Policy">
@@ -41,10 +41,9 @@
 | المصدر | نوع التثبيت | رابط الاستخدام / التحميل | الحالة |
 | :--- | :--- | :---: | :---: |
 | **متجر مايكروسوفت (Microsoft Store)** | التثبيت الرسمي المباشر لنظام ويندوز 10/11 مع تحديثات تلقائية | [![Get from Microsoft](https://img.shields.io/badge/Get%20it%20from-Microsoft%20Store-0078d4?style=for-the-badge&logo=windows11&logoColor=white)](https://apps.microsoft.com/detail/9npbg9mjslhp) | متاح رسمياً على المتجر |
-| **مثبت المتجر السريع (Store Installer)** | ملف تنفيذي خفيف ينقر عليه لتثبيت التطبيق فوراً من المتجر | [![Download Installer](https://img.shields.io/badge/Download-Store%20Installer%20.exe-0078d4?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/a7mdabdoo/minshawi-recitations-app/releases/download/v1.2.1/AlMinshawi-Store-Installer.exe) | تثبيت مباشر بنقرة واحدة |
+| **إصدارات ويندوز (GitHub Releases)** | تحميل آخر إصدار مباشر لنظام ويندوز | [![Windows Release](https://img.shields.io/badge/Download-Windows%20Release-0078d4?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/a7mdabdoo/minshawi-recitations-releases/releases/latest) | متاح ومباشر |
 | **نسخة الويب (Web App)** | تصفح واستماع فوري بدون تحميل | [![Live Web App](https://img.shields.io/badge/Open-Web%20App-0ea5e9?style=for-the-badge&logo=google-chrome&logoColor=white)](https://a7mdabdoo.github.io/minshawi-recitations-app/) | متاح ويعمل |
-| **متجر APKPure (Android)** | المتجر الرسمي المعتمد للتطبيق على أندرويد | [![Download on APKPure](https://img.shields.io/badge/Download-APKPure-00c853?style=for-the-badge&logo=android&logoColor=white)](https://apkpure.com/p/com.minshawi.recitations) | متاح على المتجر |
-| **مستودع GitHub (Android APK)** | تحميل ملف الـ APK المباشر للأندرويد (v1.2.1) | [![Download APK](https://img.shields.io/badge/Download-al--minshawi--recitations--v1.2.1.apk-2563eb?style=for-the-badge&logo=github&logoColor=white)](https://github.com/a7mdabdoo/minshawi-recitations-app/releases/download/v1.2.1/al-minshawi-recitations-v1.2.1.apk) | متاح ومباشر |
+| **مستودع الإصدارات (Android APK)** | تحميل وتحديث مباشر لملف الـ APK للأندرويد (v1.2.2) | [![Download APK](https://img.shields.io/badge/Download-al--minshawi--recitations--v1.2.2.apk-2563eb?style=for-the-badge&logo=github&logoColor=white)](https://github.com/a7mdabdoo/minshawi-recitations-releases/releases/download/v1.2.2/al-minshawi-recitations-v1.2.2.apk) | متاح ومباشر |
 
 ---
 
@@ -64,17 +63,17 @@
 
 ## نبذة عن المشروع
 
-تطبيق **جامع تلاوات المنشاوي** هو منصة قرآنية صوتية مفتوحة المصدر تهدف إلى توفير تجربة استماع راقية وموثوقة للتراث الصوتي الخالد لفضيلة القارئ الشيخ محمد صديق المنشاوي (رحمه الله).
+تطبيق **جامع تلاوات المنشاوي** هو منصة قرآنية صوتية مجانية تهدف إلى توفير تجربة استماع راقية وموثوقة للتراث الصوتي الخالد لفضيلة القارئ الشيخ محمد صديق المنشاوي (رحمه الله).
 
-يجمع التطبيق أربعة أقسام رئيسية: المصحف المرتل كاملاً (١١٤ سورة)، والمصحف المجود كاملاً (١١٤ سورة)، والتسجيلات الخارجية النادرة لحفلات عام ١٣٨٧ هـ (٢٦ سورة)، بالإضافة إلى قسم روائع النهاوند الذي يضم ٣٠٣ تسجيلات من أشهر المحافل التاريخية الخالدة مع تبويب خاص للمختارات الذهبية (٢١ محفلاً). يتميز التطبيق بمشغل صوتي عصري ومتقدم، وأدوات متخصصة في حفظ القرآن الكريم ومراجعته، وفحص تلقائي للتحديثات، مع دعم كامل للتشغيل دون اتصال بالإنترنت وخلو تام من الإعلانات أو أدوات التتبع.
+يجمع التطبيق أربعة أقسام رئيسية: المصحف المرتل كاملاً (١١٤ سورة)، والمصحف المجود كاملاً (١١٤ سورة)، و**المصحف المرتل - 1387 هـ** (٢٦ سورة)، بالإضافة إلى قسم **المحافل والتلاوات النادرة** الذي يضم ١٠١٩ تلاوة فريدة من أشهر المحافل التاريخية الخالدة مع تبويب افتراضي للمختارات الذهبية (٦٧ محفلاً) وزر تصفية بالمكان والسور. يتميز التطبيق بمشغل صوتي عصري ومتقدم، وأدوات متخصصة في حفظ القرآن الكريم ومراجعته، وفحص تلقائي للتحديثات، مع دعم كامل للتشغيل دون اتصال بالإنترنت وخلو تام من الإعلانات أو أدوات التتبع.
 
 <br>
 
 ### About The Project (English)
 
-**Al-Minshawi Quran Recitations (v1.2.1)** is a modern, open-source audio streaming and offline playback platform engineered to present the timeless recordings of Sheikh Muhammad Siddiq Al-Minshawi.
+**Al-Minshawi Quran Recitations (v1.2.2)** is a modern audio streaming and offline playback platform engineered to present the timeless recordings of Sheikh Muhammad Siddiq Al-Minshawi.
 
-The app bundles four comprehensive collections: his complete Murattal recitation (114 Surahs), complete Mujawwad recitation (114 Surahs), rare historic external concert recordings from 1387 AH (26 Surahs), and the Nahawand Masterpieces collection (303 historic recordings alongside a curated 21-track Golden Selection). It provides an elegant audio experience with Quranic memorization tools, offline caching, automatic in-app update checking, and strict zero-advertising and privacy commitments.
+The app bundles four comprehensive collections: his complete Murattal recitation (114 Surahs), complete Mujawwad recitation (114 Surahs), **المصحف المرتل - 1387 هـ** (26 Surahs), and **المحافل والتلاوات النادرة** (1,019 deduplicated historic concert recitations with a curated 67-track Golden Selection plus Place and Surah filter menu). It provides an elegant audio experience with Quranic memorization tools, offline caching, automatic in-app update checking, and strict zero-advertising and privacy commitments.
 
 ---
 
@@ -106,8 +105,8 @@ The app bundles four comprehensive collections: his complete Murattal recitation
 ### ١. مكتبة تلاوات شاملة (٤ أقسام رئيسية)
 - **المصحف المرتل كاملاً:** ١١٤ سورة نقية برواية حفص عن عاصم.
 - **المصحف المجود كاملاً:** ١١٤ سورة من روائع التلاوة المجودة بجودة صوتية عالية.
-- **التلاوات النادرة لعام ١٣٨٧ هـ:** ٢٦ سورة من الحفلات والتسجيلات الخارجية النادرة.
-- **روائع النهاوند (جديد في v1.1.0):** يضم ٣٠٣ تسجيلات من المحافل التاريخية الخالدة بمقام النهاوند، مع تبويب مستقل للمختارات الذهبية (٢١ محفلاً مختاراً) وعرض تفصيلي لاسم السورة ومكان وتاريخ التسجيل.
+- **المصحف المرتل - 1387 هـ:** ٢٦ سورة من تسجيلات استوديو الإذاعة المصرية النقية.
+- **المحافل والتلاوات النادرة:** يضم ١٠١٩ تلاوة تاريخية بدون أي تكرار، مع تبويب افتراضي للمختارات الذهبية (٦٧ محفلاً مختاراً) وزر تصفية بالمكان والسور وعرض تفصيلي لاسم السورة والآيات ومكان وتاريخ التسجيل.
 
 ### ٢. مشغل صوتي متطور وشريط تحكم مصغر
 - **واجهة عصرية متناسقة:** تصميم داكن بلمسات ذهبية يتناغم بدقة مع ألوان التطبيق في الوضعين الداكن والفاتح.
@@ -122,7 +121,7 @@ The app bundles four comprehensive collections: his complete Murattal recitation
 
 ### ٤. قوائم التشغيل المخصصة والمفضلة المعزولة
 - إنشاء وإدارة قوائم تشغيل مخصصة للتلاوات المفضلة وحفظها محلياً عبر Hive.
-- إظهار شارة مصدر التلاوة (المصحف المرتل، المصحف المجود، التلاوات النادرة، روائع النهاوند) داخل قوائم التشغيل والتنزيلات للتمييز الفوري بين التسجيلات.
+- إظهار شارة مصدر التلاوة (المصحف المرتل، المصحف المجود، المصحف المرتل - 1387 هـ، المحافل والتلاوات النادرة) داخل قوائم التشغيل والتنزيلات للتمييز الفوري بين التسجيلات.
 - عزل عداد وقائمة المفضلة لكل قسم بشكل مستقل لسهولة الوصول إلى مفضلة كل مصحف على حدة.
 - بحث فوري وسريع يدعم تطبيع الحروف والهمزات العربية لمنع أي فقد في نتائج البحث.
 
@@ -153,7 +152,7 @@ The app bundles four comprehensive collections: his complete Murattal recitation
 - **قواعد البيانات والتخزين المحلي:** Hive NoSQL لحفظ التفضيلات وقوائم التشغيل ومسارات التنزيل محلياً.
 - **محرك الصوتيات:** `just_audio`, `audio_service`, `just_audio_background`
 - **التنقل والتوجيه:** `go_router`
-- **إدارة الشبكة والتحديثات:** `dio`, `http`, `package_info_plus`, `url_launcher`
+- **إدارة الشبكة والتحديثات:** `dio`, `package_info_plus`, `url_launcher`, `open_filex`
 - **الخطوط والطباعة:** Amiri للنصوص القرآنية، و Cairo لواجهات المستخدم.
 
 ---
@@ -177,7 +176,7 @@ lib/
 │   ├── favorites/              # المفضلة والتسجيلات المحفوظة
 │   ├── player/                 # مشغل الصوت الكامل، المشغل المصغر، مؤقت النوم، وتكرار A-B
 │   ├── playlists/              # إدارة قوائم التشغيل المخصصة والبحث
-│   └── recitations/            # فهرس السور والمصاحف وروائع النهاوند والصفحة الرئيسية
+│   └── recitations/            # فهرس السور والمصاحف والمحافل والصفحة الرئيسية
 └── main.dart                   # نقطة انطلاق التطبيق
 ```
 
@@ -187,47 +186,19 @@ lib/
 
 التطبيق مجاني 100%، بدون أي إعلانات تجارية أو أدوات تتبع، ولا يجمع أو يشارك أي بيانات شخصية للمستخدمين. للاطلاع على الوثيقة الرسمية لسياسة الخصوصية:
 - [وثيقة سياسة الخصوصية الكاملة في المستودع (PRIVACY_POLICY.md)](PRIVACY_POLICY.md)
-- [الرابط العام المباشر على GitHub](https://github.com/a7mdabdoo/minshawi-recitations-app/blob/main/PRIVACY_POLICY.md)
+- [الرابط العام المباشر على GitHub](https://github.com/a7mdabdoo/minshawi-recitations-releases/blob/main/PRIVACY_POLICY.md)
 
 ---
 
-## التثبيت والتشغيل للمطورين
+## ما الجديد في الإصدار v1.2.2
 
-### المتطلبات الأساسية
-- Flutter SDK (الإصدار 3.29.0 أو أحدث)
-- Android SDK مع دعم Android 8.0 (API 26) فما فوق
-- بيئة تطوير متكاملة (VS Code أو Android Studio)
-
-### خطوات التشغيل
-
-1. **استنساخ المستودع:**
-   ```bash
-   git clone https://github.com/a7mdabdoo/minshawi-recitations-app.git
-   cd minshawi-recitations-app
-   ```
-
-2. **تثبيت الحزم البرمجية:**
-   ```bash
-   flutter pub get
-   ```
-
-3. **تشغيل الاختبارات البرمجية:**
-   ```bash
-   flutter test
-   ```
-
-4. **تشغيل التطبيق في بيئة التطوير:**
-   ```bash
-   flutter run
-   ```
-
-5. **بناء حزمة الإنتاج المخففة (Release APK):**
-   ```bash
-   flutter build apk --release --split-per-abi --obfuscate --split-debug-info=build/app/outputs/symbols
-   ```
+- اعتماد تسمية **المصحف المرتل - 1387 هـ** و**المحافل والتلاوات النادرة**.
+- تنقية وتحديث قسم المحافل ليضم **١٠١٩ تلاوة** تاريخية بدون تكرار، مع تبويب افتراضي للمختارات الذهبية (**٦٧ محفلاً**)، وزر تصفية أنيق حسب المكان والسور.
+- إصلاح جذري لمشكلة الإغلاق المفاجئ عند تكبير النافذة أو وضع ملء الشاشة على ويندوز.
+- تنظيف البنية البرمجية وتسريع البحث التلقائي وتحسين سلاسة التشغيل.
 
 ---
 
 ## الترخيص
 
-هذا المشروع متاح بموجب ترخيص [MIT License](LICENSE). جميع التلاوات الصوتية هي تراث إسلامي عام لفضيلة الشيخ محمد صديق المنشاوي (رحمه الله).
+جميع حقوق التلاوات الصوتية متاحة كوقف وتراث إسلامي لفضيلة الشيخ محمد صديق المنشاوي (رحمه الله). يُرجى مراجعة ملف [الترخيص](LICENSE) للمزيد.

@@ -14,8 +14,6 @@ import 'package:al_minshawi_recitations/features/playlists/presentation/cubit/pl
 import 'package:al_minshawi_recitations/features/recitations/domain/entities/recitation.dart';
 import 'package:al_minshawi_recitations/features/recitations/presentation/cubit/download_cubit.dart';
 import 'package:al_minshawi_recitations/features/recitations/presentation/cubit/download_state.dart';
-import 'package:al_minshawi_recitations/features/recitations/presentation/cubit/nahawand_cubit.dart';
-import 'package:al_minshawi_recitations/features/recitations/presentation/cubit/nahawand_state.dart';
 import 'package:al_minshawi_recitations/features/recitations/presentation/cubit/recitation_list_cubit.dart';
 import 'package:al_minshawi_recitations/features/recitations/presentation/cubit/recitation_list_state.dart';
 
@@ -91,12 +89,6 @@ class _FakeRecitationListCubit extends Cubit<RecitationListState>
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-class _FakeNahawandCubit extends Cubit<NahawandState> implements NahawandCubit {
-  _FakeNahawandCubit() : super(const NahawandInitial());
-  @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
-}
-
 class _FakeDownloadCubit extends Cubit<DownloadState> implements DownloadCubit {
   _FakeDownloadCubit() : super(const DownloadState());
   @override
@@ -131,7 +123,6 @@ void main() {
           BlocProvider<SleepTimerCubit>.value(value: _FakeSleepTimerCubit()),
           BlocProvider<RecitationListCubit>.value(
               value: _FakeRecitationListCubit()),
-          BlocProvider<NahawandCubit>.value(value: _FakeNahawandCubit()),
           BlocProvider<DownloadCubit>.value(value: _FakeDownloadCubit()),
           BlocProvider<PlaylistsCubit>.value(value: _FakePlaylistsCubit()),
           BlocProvider<ThemeCubit>.value(value: _FakeThemeCubit()),

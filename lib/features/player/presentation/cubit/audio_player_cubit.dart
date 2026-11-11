@@ -59,6 +59,7 @@ class AudioPlayerCubit extends Cubit<AudioPlayerState> {
   int get abRemainingRepeats => _abRemainingRepeats;
 
   void setAbRepeatCount(int? count) {
+    if (_currentRecitation?.isRadio == true) return;
     _abRepeatCount = count;
     _abRemainingRepeats = count ?? 0;
     final s = state;
@@ -118,7 +119,7 @@ class AudioPlayerCubit extends Cubit<AudioPlayerState> {
 
   void saveCurrentPosition() {
     final recitation = _currentRecitation;
-    if (recitation != null) {
+    if (recitation != null && !recitation.isRadio) {
       final pos = _player.position.inSeconds;
       onPositionSaved?.call(recitation.id, pos);
       onTrackPlayed?.call(recitation.id);
@@ -129,7 +130,9 @@ class AudioPlayerCubit extends Cubit<AudioPlayerState> {
 
   void _bindStreams() {
     _durationSub = _player.durationStream.listen((realDuration) {
-      if (realDuration != null && realDuration > Duration.zero) {
+      if (!(_currentRecitation?.isRadio ?? false) &&
+          realDuration != null &&
+          realDuration > Duration.zero) {
         _duration = realDuration;
         final s = state;
         if (s is AudioPlayerReady) {
@@ -139,7 +142,10 @@ class AudioPlayerCubit extends Cubit<AudioPlayerState> {
     });
 
     _positionSub = _player.positionStream.listen((position) {
-      if (_abPointA != null && _abPointB != null && position >= _abPointB!) {
+      if (!(_currentRecitation?.isRadio ?? false) &&
+          _abPointA != null &&
+          _abPointB != null &&
+          position >= _abPointB!) {
         if (_abRepeatCount != null && _abRepeatCount! > 0) {
           if (_abRemainingRepeats > 1) {
             _abRemainingRepeats--;
@@ -163,6 +169,7 @@ class AudioPlayerCubit extends Cubit<AudioPlayerState> {
 
       final recitation = _currentRecitation;
       if (recitation != null &&
+          !recitation.isRadio &&
           position.inSeconds > 3 &&
           position.inSeconds % 5 == 0 &&
           _lastSavedPositionSecond != position.inSeconds) {
@@ -182,7 +189,7 @@ class AudioPlayerCubit extends Cubit<AudioPlayerState> {
         if (_isTransitioning) return;
         _isTransitioning = true;
 
-        if (_loopMode == LoopMode.one) {
+        if (!recitation.isRadio && _loopMode == LoopMode.one) {
           try {
             await _player.seek(Duration.zero);
             _isTransitioning = false;
@@ -203,23 +210,29 @@ class AudioPlayerCubit extends Cubit<AudioPlayerState> {
             } catch (_) {}
             _isTransitioning = false;
             final s = state;
+            final effectiveDuration = recitation.isRadio
+                ? Duration.zero
+                : (_player.duration ?? _duration);
             if (s is AudioPlayerReady) {
               emit(s.copyWith(
                 position: Duration.zero,
-                duration: _player.duration ?? _duration,
+                duration: effectiveDuration,
                 isPlaying: false,
                 isBuffering: false,
+                loopMode: recitation.isRadio ? LoopMode.off : _loopMode,
+                isShuffleEnabled: !recitation.isRadio && _isShuffleEnabled,
+                speed: recitation.isRadio ? 1.0 : _speed,
               ));
             } else {
               emit(AudioPlayerReady(
                 recitation: recitation,
                 position: Duration.zero,
-                duration: _player.duration ?? _duration,
+                duration: effectiveDuration,
                 isPlaying: false,
                 isBuffering: false,
-                loopMode: _loopMode,
-                isShuffleEnabled: _isShuffleEnabled,
-                speed: _speed,
+                loopMode: recitation.isRadio ? LoopMode.off : _loopMode,
+                isShuffleEnabled: !recitation.isRadio && _isShuffleEnabled,
+                speed: recitation.isRadio ? 1.0 : _speed,
                 abPointA: _abPointA,
                 abPointB: _abPointB,
               ));
@@ -233,15 +246,18 @@ class AudioPlayerCubit extends Cubit<AudioPlayerState> {
         _cancelNetworkTimeout();
         _isTransitioning = false;
         final s = state;
+        final effectiveDuration = recitation.isRadio
+            ? Duration.zero
+            : (_player.duration ?? _duration);
         if (s is AudioPlayerReady) {
           emit(s.copyWith(
             position: _player.position,
-            duration: _player.duration ?? _duration,
+            duration: effectiveDuration,
             isPlaying: isPlaying,
             isBuffering: false,
-            loopMode: _loopMode,
-            isShuffleEnabled: _isShuffleEnabled,
-            speed: _speed,
+            loopMode: recitation.isRadio ? LoopMode.off : _loopMode,
+            isShuffleEnabled: !recitation.isRadio && _isShuffleEnabled,
+            speed: recitation.isRadio ? 1.0 : _speed,
             abPointA: _abPointA,
             abPointB: _abPointB,
           ));
@@ -249,12 +265,12 @@ class AudioPlayerCubit extends Cubit<AudioPlayerState> {
           emit(AudioPlayerReady(
             recitation: recitation,
             position: _player.position,
-            duration: _player.duration ?? _duration,
+            duration: effectiveDuration,
             isPlaying: isPlaying,
             isBuffering: false,
-            loopMode: _loopMode,
-            isShuffleEnabled: _isShuffleEnabled,
-            speed: _speed,
+            loopMode: recitation.isRadio ? LoopMode.off : _loopMode,
+            isShuffleEnabled: !recitation.isRadio && _isShuffleEnabled,
+            speed: recitation.isRadio ? 1.0 : _speed,
             abPointA: _abPointA,
             abPointB: _abPointB,
           ));
@@ -264,6 +280,9 @@ class AudioPlayerCubit extends Cubit<AudioPlayerState> {
 
       if (processingState == ProcessingState.buffering) {
         final s = state;
+        final effectiveDuration = recitation.isRadio
+            ? Duration.zero
+            : (_player.duration ?? _duration);
         if (s is AudioPlayerReady) {
           emit(s.copyWith(
             isPlaying: isPlaying,
@@ -273,12 +292,12 @@ class AudioPlayerCubit extends Cubit<AudioPlayerState> {
           emit(AudioPlayerReady(
             recitation: recitation,
             position: _player.position,
-            duration: _player.duration ?? _duration,
+            duration: effectiveDuration,
             isPlaying: isPlaying,
             isBuffering: true,
-            loopMode: _loopMode,
-            isShuffleEnabled: _isShuffleEnabled,
-            speed: _speed,
+            loopMode: recitation.isRadio ? LoopMode.off : _loopMode,
+            isShuffleEnabled: !recitation.isRadio && _isShuffleEnabled,
+            speed: recitation.isRadio ? 1.0 : _speed,
             abPointA: _abPointA,
             abPointB: _abPointB,
           ));
@@ -406,15 +425,21 @@ class AudioPlayerCubit extends Cubit<AudioPlayerState> {
     }
 
     _currentRecitation = recitation;
-    _duration = _player.duration ??
-        (recitation.durationSeconds > 0
+    _abPointA = null;
+    _abPointB = null;
+    _abRemainingRepeats = 0;
+    _duration = recitation.isRadio
+        ? Duration.zero
+        : (recitation.durationSeconds > 0
             ? Duration(seconds: recitation.durationSeconds)
             : Duration.zero);
     emit(AudioPlayerLoading(recitation));
 
-    final startSeconds = initialPosition?.inSeconds ?? 0;
-    onPositionSaved?.call(recitation.id, startSeconds);
-    onTrackPlayed?.call(recitation.id);
+    if (!recitation.isRadio) {
+      final startSeconds = initialPosition?.inSeconds ?? 0;
+      onPositionSaved?.call(recitation.id, startSeconds);
+      onTrackPlayed?.call(recitation.id);
+    }
 
     try {
       await _player.stop();
@@ -423,7 +448,7 @@ class AudioPlayerCubit extends Cubit<AudioPlayerState> {
       final isCurrentlyDownloading = sl.isRegistered<DownloadCubit>() &&
           sl<DownloadCubit>().state.isDownloading(recitation.id);
 
-      if (!kIsWeb && !isCurrentlyDownloading) {
+      if (!kIsWeb && !isCurrentlyDownloading && !recitation.isRadio) {
         final hivePath = recitation.localFilePath ??
             _localDataSource.getDownloadedPath(recitation.id);
 
@@ -443,19 +468,19 @@ class AudioPlayerCubit extends Cubit<AudioPlayerState> {
         }
       }
 
-      final albumName = switch (recitation.collectionId) {
-        'mojawad' => 'المصحف المجود',
-        'complete_murattal' => 'المصحف المرتل',
-        'nahawand' => 'روائع النهاوند',
-        'radio' => 'إذاعة القرآن الكريم',
-        _ => 'التلاوات النادرة - تسجيلات ١٣٨٧ هـ',
-      };
+      final albumName = recitation.isRadio
+          ? 'إذاعة القرآن الكريم'
+          : switch (recitation.collectionId) {
+              'mojawad' => 'المصحف المجود',
+              'complete_murattal' => 'المصحف المرتل',
+              'nahawand' => 'المحافل والتلاوات النادرة',
+              'radio' => 'إذاعة القرآن الكريم',
+              _ => 'المصحف المرتل - 1387 هـ',
+            };
 
       final artUri = _cachedArtworkUri ?? await _resolveArtworkUri();
 
-      final mediaTitle = recitation.collectionId == 'radio'
-          ? recitation.surahNameAr
-          : 'سورة ${recitation.surahNameAr}';
+      final mediaTitle = recitation.cleanSurahTitleWithVerses;
 
       final mediaItem = MediaItem(
         id: recitation.id,
@@ -463,7 +488,7 @@ class AudioPlayerCubit extends Cubit<AudioPlayerState> {
         title: mediaTitle,
         artist: AppConstants.sheikhNameAr,
         artUri: artUri,
-        duration: recitation.durationSeconds > 0
+        duration: (!recitation.isRadio && recitation.durationSeconds > 0)
             ? Duration(seconds: recitation.durationSeconds)
             : null,
       );
@@ -480,11 +505,15 @@ class AudioPlayerCubit extends Cubit<AudioPlayerState> {
 
       await _player.setAudioSource(
         source,
-        initialPosition: initialPosition,
+        initialPosition: recitation.isRadio ? null : initialPosition,
         preload: true,
       );
-      await _player
-          .setLoopMode(_loopMode == LoopMode.one ? LoopMode.one : LoopMode.off);
+      await _player.setLoopMode(
+        (!recitation.isRadio && _loopMode == LoopMode.one)
+            ? LoopMode.one
+            : LoopMode.off,
+      );
+      await _player.setSpeed(recitation.isRadio ? 1.0 : _speed);
       _isTransitioning = false;
       unawaited(BatteryOptimizationService.acquireLocks());
       unawaited(_player.play().catchError((Object e) {
@@ -498,6 +527,10 @@ class AudioPlayerCubit extends Cubit<AudioPlayerState> {
   }
 
   Future<void> playNext() async {
+    if (_currentRecitation?.isRadio == true) {
+      _isTransitioning = false;
+      return;
+    }
     if (_playlist.isEmpty) {
       _isTransitioning = false;
       return;
@@ -532,6 +565,7 @@ class AudioPlayerCubit extends Cubit<AudioPlayerState> {
   }
 
   Future<void> playPrevious() async {
+    if (_currentRecitation?.isRadio == true) return;
     if (_player.position.inSeconds > 3) {
       await seekTo(Duration.zero);
       return;
@@ -555,6 +589,7 @@ class AudioPlayerCubit extends Cubit<AudioPlayerState> {
   }
 
   void toggleLoopMode() {
+    if (_currentRecitation?.isRadio == true) return;
     final nextMode = switch (_loopMode) {
       LoopMode.off => LoopMode.all,
       LoopMode.all => LoopMode.one,
@@ -578,6 +613,7 @@ class AudioPlayerCubit extends Cubit<AudioPlayerState> {
   }
 
   void toggleShuffle() {
+    if (_currentRecitation?.isRadio == true) return;
     _isShuffleEnabled = !_isShuffleEnabled;
 
     final s = state;
@@ -636,6 +672,7 @@ class AudioPlayerCubit extends Cubit<AudioPlayerState> {
   }
 
   Future<void> skipForward() async {
+    if (_currentRecitation?.isRadio == true) return;
     final current = _player.position;
     final maxDuration = _player.duration ?? _duration;
     final target = current + const Duration(seconds: 10);
@@ -644,6 +681,7 @@ class AudioPlayerCubit extends Cubit<AudioPlayerState> {
   }
 
   Future<void> skipBackward() async {
+    if (_currentRecitation?.isRadio == true) return;
     final current = _player.position;
     final target = current - const Duration(seconds: 10);
     final clamped = target < Duration.zero ? Duration.zero : target;
@@ -651,6 +689,7 @@ class AudioPlayerCubit extends Cubit<AudioPlayerState> {
   }
 
   Future<void> seekTo(Duration position) async {
+    if (_currentRecitation?.isRadio == true) return;
     _lastSavedPositionSecond = null;
     final maxDuration = _player.duration ?? _duration;
     final clamped = position < Duration.zero
@@ -677,6 +716,7 @@ class AudioPlayerCubit extends Cubit<AudioPlayerState> {
   }
 
   Future<void> setSpeed(double speed) async {
+    if (_currentRecitation?.isRadio == true) return;
     _speed = speed;
     await _player.setSpeed(speed);
     final s = state;
@@ -692,6 +732,7 @@ class AudioPlayerCubit extends Cubit<AudioPlayerState> {
   }
 
   Future<void> togglePlaybackSpeed() async {
+    if (_currentRecitation?.isRadio == true) return;
     final nextSpeed = switch (_speed) {
       1.0 => 1.25,
       1.25 => 1.5,
@@ -702,6 +743,7 @@ class AudioPlayerCubit extends Cubit<AudioPlayerState> {
   }
 
   Future<AbLoopState> cycleAbRepeat() async {
+    if (_currentRecitation?.isRadio == true) return AbLoopState.off;
     if (_abPointA == null) {
       _abPointA = _player.position;
       _abPointB = null;
@@ -743,6 +785,7 @@ class AudioPlayerCubit extends Cubit<AudioPlayerState> {
   }
 
   void setPointA([Duration? pos]) {
+    if (_currentRecitation?.isRadio == true) return;
     _abPointA = pos ?? _player.position;
     if (_abPointB != null && _abPointB! <= _abPointA!) {
       _abPointB = null;
@@ -758,6 +801,7 @@ class AudioPlayerCubit extends Cubit<AudioPlayerState> {
   }
 
   Future<void> setPointB([Duration? pos]) async {
+    if (_currentRecitation?.isRadio == true) return;
     final currentPos = pos ?? _player.position;
     _abPointA ??= Duration.zero;
     if (currentPos > _abPointA!) {

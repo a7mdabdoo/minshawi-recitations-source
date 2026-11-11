@@ -1,29 +1,29 @@
 import 'dart:convert';
-import 'dart:io' show Platform;
+import 'dart:io' show HttpClient, Platform;
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:http/http.dart' as http;
 import 'package:open_filex/open_filex.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../constants/app_colors.dart';
+import '../constants/app_constants.dart';
 
 class UpdateService {
   UpdateService._();
 
   static const String _versionJsonUrl =
-      'https://raw.githubusercontent.com/a7mdabdoo/minshawi-recitations-app/main/version.json';
+      '${AppConstants.releasesRawBaseUrl}/version.json';
 
   static const String _defaultApkUrl =
-      'https://github.com/a7mdabdoo/minshawi-recitations-app/releases/download/v1.2.1/al-minshawi-recitations-v1.2.1.apk';
+      '${AppConstants.releasesRepoUrl}/releases/download/v1.2.2/al-minshawi-recitations-v1.2.2.apk';
 
   static const String _defaultWindowsUrl =
-      'https://github.com/a7mdabdoo/minshawi-recitations-app/releases/latest';
+      '${AppConstants.releasesRepoUrl}/releases/latest';
 
   static bool _hasCheckedThisSession = false;
 
@@ -32,14 +32,17 @@ class UpdateService {
     if (_hasCheckedThisSession) return;
     _hasCheckedThisSession = true;
 
+    HttpClient? client;
     try {
-      final response = await http
-          .get(Uri.parse(_versionJsonUrl))
-          .timeout(const Duration(seconds: 6));
+      client = HttpClient()..connectionTimeout = const Duration(seconds: 6);
+      final request = await client.getUrl(Uri.parse(_versionJsonUrl));
+      final response =
+          await request.close().timeout(const Duration(seconds: 6));
 
       if (response.statusCode != 200) return;
 
-      final dynamic decoded = jsonDecode(utf8.decode(response.bodyBytes));
+      final rawBody = await response.transform(utf8.decoder).join();
+      final dynamic decoded = jsonDecode(rawBody);
       if (decoded is! Map<String, dynamic>) return;
 
       Map<String, dynamic>? platformConfig;
@@ -103,7 +106,10 @@ class UpdateService {
           forceUpdate: forceUpdate,
         ),
       );
-    } catch (_) {}
+    } catch (_) {
+    } finally {
+      client?.close(force: true);
+    }
   }
 
   static bool _isRemoteNewer({
@@ -285,8 +291,10 @@ class _UpdateDialogState extends State<UpdateDialog> {
           backgroundColor: Colors.transparent,
           insetPadding:
               const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(22, 24, 22, 20),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 440),
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(22, 24, 22, 20),
             decoration: BoxDecoration(
               color: cardBg,
               borderRadius: BorderRadius.circular(22),
@@ -507,6 +515,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
               ],
             ),
           ),
+        ),
         ),
       ),
     );

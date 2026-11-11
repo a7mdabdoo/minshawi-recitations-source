@@ -31,16 +31,18 @@ class RecitationListLoaded extends RecitationListState {
     final q = searchQuery.trim();
     if (q.isEmpty) return recitations;
 
+    final tokens = ArabicNormalizer.tokenizeQuery(q);
     return recitations.where((r) {
-      return ArabicNormalizer.matchesMultiToken(
-        query: q,
-        sources: [
+      return ArabicNormalizer.matchesPreparedCached(
+        tokens: tokens,
+        cacheKey: r,
+        sourcesBuilder: () => [
           r.surahNameAr,
           r.cleanSurahTitleWithVerses,
           r.recordingLocation,
           r.cleanLocationOrDetail,
           r.recordingYear,
-          r.verseRange,
+          if (r.isMahfel) r.verseRange,
           r.sourceLabel,
           r.surahNameEn,
           r.surahNumber.toString(),

@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/settings/settings_cubit.dart';
 import '../../../../core/theme/theme_cubit.dart';
@@ -58,22 +61,33 @@ class _HomeView extends StatefulWidget {
 
 class _HomeViewState extends State<_HomeView> with WidgetsBindingObserver {
   late _ListTab _selectedTab;
+  String? _selectedPlaceGroup;
+  String? _selectedSurahCategory;
+
+  _ListTab _defaultTabFor(String collectionId, bool initialFavoritesTab) {
+    if (initialFavoritesTab) return _ListTab.favorites;
+    if (collectionId == 'nahawand') return _ListTab.golden;
+    return _ListTab.all;
+  }
 
   @override
   void initState() {
     super.initState();
     _selectedTab =
-        widget.initialFavoritesTab ? _ListTab.favorites : _ListTab.all;
+        _defaultTabFor(widget.collectionId, widget.initialFavoritesTab);
     WidgetsBinding.instance.addObserver(this);
   }
 
   @override
   void didUpdateWidget(covariant _HomeView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.initialFavoritesTab != oldWidget.initialFavoritesTab) {
+    if (widget.collectionId != oldWidget.collectionId ||
+        widget.initialFavoritesTab != oldWidget.initialFavoritesTab) {
       setState(() {
         _selectedTab =
-            widget.initialFavoritesTab ? _ListTab.favorites : _ListTab.all;
+            _defaultTabFor(widget.collectionId, widget.initialFavoritesTab);
+        _selectedPlaceGroup = null;
+        _selectedSurahCategory = null;
       });
     }
   }
@@ -96,6 +110,7 @@ class _HomeViewState extends State<_HomeView> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isLarge = MediaQuery.sizeOf(context).width >= 600;
 
     return MultiBlocListener(
       listeners: [
@@ -142,7 +157,8 @@ class _HomeViewState extends State<_HomeView> with WidgetsBindingObserver {
                     16,
                     0,
                     16,
-                    96.0 + MediaQuery.of(context).padding.bottom,
+                    (isLarge ? 16.0 : 96.0) +
+                        MediaQuery.of(context).padding.bottom,
                   ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
@@ -193,7 +209,8 @@ class _HomeViewState extends State<_HomeView> with WidgetsBindingObserver {
                     16,
                     0,
                     16,
-                    96.0 + MediaQuery.of(context).padding.bottom,
+                    (isLarge ? 16.0 : 96.0) +
+                        MediaQuery.of(context).padding.bottom,
                   ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
@@ -226,11 +243,33 @@ class _HomeViewState extends State<_HomeView> with WidgetsBindingObserver {
               collectionId: widget.collectionId,
               onTabSelected: (tab) => setState(() => _selectedTab = tab),
             ),
-            _SearchBar(isDark: isDark),
+            _SearchBar(
+              isDark: isDark,
+              collectionId: widget.collectionId,
+              selectedTab: _selectedTab,
+              selectedPlaceGroup: _selectedPlaceGroup,
+              selectedSurahCategory: _selectedSurahCategory,
+              onFiltersApplied: (place, category) => setState(() {
+                _selectedPlaceGroup = place;
+                _selectedSurahCategory = category;
+              }),
+              onResetFilters: () => setState(() {
+                _selectedPlaceGroup = null;
+                _selectedSurahCategory = null;
+              }),
+            ),
             _ResumePlaybackBanner(isDark: isDark),
             _Body(
               isDark: isDark,
+              collectionId: widget.collectionId,
               selectedTab: _selectedTab,
+              selectedPlaceGroup: _selectedPlaceGroup,
+              selectedSurahCategory: _selectedSurahCategory,
+              onSwitchToAll: () => setState(() => _selectedTab = _ListTab.all),
+              onResetFilters: () => setState(() {
+                _selectedPlaceGroup = null;
+                _selectedSurahCategory = null;
+              }),
             ),
           ],
         ),
@@ -249,13 +288,14 @@ class _AppBar extends StatelessWidget {
     final title = switch (collectionId) {
       'mojawad' => 'المصحف المجود',
       'complete_murattal' => 'المصحف المرتل',
-      'nahawand' => 'روائع النهاوند',
-      _ => 'تسجيلات 1387 هـ النادرة',
+      'nahawand' => AppConstants.mahafilTitle,
+      _ => AppConstants.rare1387Title,
     };
     final subtitle = switch (collectionId) {
       'mojawad' => 'الشيخ محمد صديق المنشاوي (١١٤ سورة)',
       'complete_murattal' => 'الشيخ محمد صديق المنشاوي (١١٤ سورة)',
-      'nahawand' => 'روائع النهاوند - أشهر المحافل التاريخية',
+      'nahawand' =>
+        'الشيخ محمد صديق المنشاوي (${AppConstants.mahafilCountAr} تلاوة)',
       _ => 'الشيخ محمد صديق المنشاوي (٢٦ سورة)',
     };
 
@@ -393,10 +433,12 @@ class _FilterTabs extends StatelessWidget {
   Widget build(BuildContext context) {
     final gold = isDark ? AppColors.goldPrimary : AppColors.goldDark;
     final bg = isDark ? AppColors.darkCardSurface : AppColors.lightCardSurface;
+    final isLarge = MediaQuery.sizeOf(context).width >= 600;
+    final hPad = isLarge ? 20.0 : 16.0;
 
     return SliverToBoxAdapter(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+        padding: EdgeInsets.fromLTRB(hPad, 12, hPad, 4),
         child: BlocBuilder<RecitationListCubit, RecitationListState>(
           buildWhen: (prev, curr) =>
               (prev is RecitationListLoaded ? prev.recitations.length : 0) !=
@@ -420,18 +462,6 @@ class _FilterTabs extends StatelessWidget {
                     children: [
                       Expanded(
                         child: _TabButton(
-                          icon: Icons.list_alt_rounded,
-                          label: 'جميع التسجيلات',
-                          isSelected: selectedTab == _ListTab.all,
-                          gold: gold,
-                          bg: bg,
-                          isDark: isDark,
-                          onTap: () => onTabSelected(_ListTab.all),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _TabButton(
                           icon: Icons.star_rounded,
                           label: 'المختارات الذهبية',
                           isSelected: selectedTab == _ListTab.golden,
@@ -442,8 +472,20 @@ class _FilterTabs extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 8),
+                      Expanded(
+                        child: _TabButton(
+                          icon: Icons.list_alt_rounded,
+                          label: 'كل المحافل',
+                          isSelected: selectedTab == _ListTab.all,
+                          gold: gold,
+                          bg: bg,
+                          isDark: isDark,
+                          onTap: () => onTabSelected(_ListTab.all),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
                       SizedBox(
-                        width: 96,
+                        width: isLarge ? 140 : 96,
                         child: _TabButton(
                           icon: Icons.favorite_rounded,
                           label: 'المفضلة ($count)',
@@ -581,7 +623,23 @@ class _TabButton extends StatelessWidget {
 
 class _SearchBar extends StatefulWidget {
   final bool isDark;
-  const _SearchBar({required this.isDark});
+  final String collectionId;
+  final _ListTab selectedTab;
+  final String? selectedPlaceGroup;
+  final String? selectedSurahCategory;
+  final void Function(String? placeGroup, String? surahCategory)
+      onFiltersApplied;
+  final VoidCallback onResetFilters;
+
+  const _SearchBar({
+    required this.isDark,
+    required this.collectionId,
+    required this.selectedTab,
+    required this.selectedPlaceGroup,
+    required this.selectedSurahCategory,
+    required this.onFiltersApplied,
+    required this.onResetFilters,
+  });
 
   @override
   State<_SearchBar> createState() => _SearchBarState();
@@ -589,6 +647,7 @@ class _SearchBar extends StatefulWidget {
 
 class _SearchBarState extends State<_SearchBar> {
   late final TextEditingController _controller;
+  Timer? _debounce;
 
   @override
   void initState() {
@@ -597,82 +656,739 @@ class _SearchBarState extends State<_SearchBar> {
   }
 
   @override
+  void didUpdateWidget(covariant _SearchBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.collectionId != oldWidget.collectionId) {
+      _debounce?.cancel();
+      _controller.clear();
+    }
+  }
+
+  @override
   void dispose() {
+    _debounce?.cancel();
     _controller.dispose();
     super.dispose();
+  }
+
+  Future<void> _openFilterModal(
+    BuildContext context,
+    RecitationListLoaded listState,
+  ) async {
+    final availablePlaces = <String>{};
+    final availableCategories = <String>{};
+    for (final r in listState.recitations) {
+      if (r is NahawandRecitationModel) {
+        if (r.placeGroup.isNotEmpty) availablePlaces.add(r.placeGroup);
+        if (r.category.isNotEmpty) availableCategories.add(r.category);
+      }
+    }
+
+    final orderedPlaces = [
+      for (final p in _mahafilPlaceOrder)
+        if (availablePlaces.contains(p)) p,
+      for (final p in availablePlaces)
+        if (!_mahafilPlaceOrder.contains(p)) p,
+    ];
+
+    final orderedCategories = [
+      for (final c in _mahafilSurahCategoryOrder)
+        if (availableCategories.contains(c)) c,
+      for (final c in availableCategories)
+        if (!_mahafilSurahCategoryOrder.contains(c)) c,
+    ];
+
+    final favoriteIds = widget.selectedTab == _ListTab.favorites
+        ? context.read<FavoritesCubit>().state.favoriteIds
+        : null;
+
+    final isWide = MediaQuery.sizeOf(context).width >= 600;
+    final bg =
+        widget.isDark ? AppColors.darkSurface : AppColors.lightBackground;
+    final border = widget.isDark ? AppColors.darkBorder : AppColors.lightBorder;
+
+    Widget buildContent(BuildContext modalCtx) {
+      return _MahafilFilterModalContent(
+        isDark: widget.isDark,
+        filteredItems: listState.filtered,
+        selectedTab: widget.selectedTab,
+        favoriteIds: favoriteIds,
+        places: orderedPlaces,
+        categories: orderedCategories,
+        initialPlace: widget.selectedPlaceGroup,
+        initialCategory: widget.selectedSurahCategory,
+        onApply: (place, category) {
+          widget.onFiltersApplied(place, category);
+          Navigator.of(modalCtx).pop();
+        },
+      );
+    }
+
+    if (isWide) {
+      await showDialog<void>(
+        context: context,
+        builder: (dialogCtx) => Directionality(
+          textDirection: TextDirection.rtl,
+          child: Dialog(
+            backgroundColor: bg,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+              side: BorderSide(color: border),
+            ),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxWidth: 560,
+                maxHeight: 640,
+              ),
+              child: buildContent(dialogCtx),
+            ),
+          ),
+        ),
+      );
+    } else {
+      await showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        useSafeArea: true,
+        backgroundColor: bg,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+        ),
+        builder: (sheetCtx) => Directionality(
+          textDirection: TextDirection.rtl,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.sizeOf(sheetCtx).height * 0.82,
+            ),
+            child: buildContent(sheetCtx),
+          ),
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = widget.isDark;
+    final gold = isDark ? AppColors.goldPrimary : AppColors.goldDark;
+    final cardBg =
+        isDark ? AppColors.darkCardSurface : AppColors.lightCardSurface;
+    final border = isDark ? AppColors.darkBorder : AppColors.lightBorder;
+    final textSecondary =
+        isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+    final hPad = MediaQuery.sizeOf(context).width >= 600 ? 20.0 : 16.0;
+    final isMahafil = widget.collectionId == 'nahawand';
+    final activeCount = (widget.selectedPlaceGroup != null ? 1 : 0) +
+        (widget.selectedSurahCategory != null ? 1 : 0);
+
     return SliverToBoxAdapter(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-        child: TextField(
-          controller: _controller,
-          textDirection: TextDirection.rtl,
-          style: GoogleFonts.cairo(
-            color:
-                isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
-          ),
-          decoration: InputDecoration(
-            hintText: 'ابحث عن سورة بالاسم أو الرقم...',
-            hintStyle: GoogleFonts.cairo(
-              color: isDark
-                  ? AppColors.darkTextTertiary
-                  : AppColors.lightTextTertiary,
-            ),
-            prefixIcon: Icon(
-              Icons.search_rounded,
-              color:
-                  isDark ? AppColors.darkIconColor : AppColors.lightIconColor,
-            ),
-            suffixIcon: _controller.text.isNotEmpty
-                ? IconButton(
-                    icon: Icon(
-                      Icons.clear_rounded,
+        padding: EdgeInsets.fromLTRB(hPad, 8, hPad, 6),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _controller,
+                    textDirection: TextDirection.rtl,
+                    style: GoogleFonts.cairo(
                       color: isDark
-                          ? AppColors.darkTextTertiary
-                          : AppColors.lightTextTertiary,
-                      size: 18,
+                          ? AppColors.darkTextPrimary
+                          : AppColors.lightTextPrimary,
                     ),
-                    onPressed: () {
-                      _controller.clear();
-                      context.read<RecitationListCubit>().search('');
+                    decoration: InputDecoration(
+                      hintText: 'ابحث عن سورة بالاسم أو الرقم...',
+                      hintStyle: GoogleFonts.cairo(
+                        color: isDark
+                            ? AppColors.darkTextTertiary
+                            : AppColors.lightTextTertiary,
+                      ),
+                      prefixIcon: Icon(
+                        Icons.search_rounded,
+                        color: isDark
+                            ? AppColors.darkIconColor
+                            : AppColors.lightIconColor,
+                      ),
+                      suffixIcon: _controller.text.isNotEmpty
+                          ? IconButton(
+                              icon: Icon(
+                                Icons.clear_rounded,
+                                color: isDark
+                                    ? AppColors.darkTextTertiary
+                                    : AppColors.lightTextTertiary,
+                                size: 18,
+                              ),
+                              onPressed: () {
+                                _debounce?.cancel();
+                                _controller.clear();
+                                context.read<RecitationListCubit>().search('');
+                                setState(() {});
+                              },
+                              tooltip: 'مسح البحث',
+                            )
+                          : null,
+                      filled: true,
+                      fillColor: cardBg,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: border),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: border),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: gold, width: 2),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                    ),
+                    onChanged: (q) {
                       setState(() {});
+                      _debounce?.cancel();
+                      if (q.trim().isEmpty) {
+                        context.read<RecitationListCubit>().search('');
+                        return;
+                      }
+                      _debounce = Timer(const Duration(milliseconds: 140), () {
+                        if (mounted) {
+                          context.read<RecitationListCubit>().search(q);
+                        }
+                      });
                     },
-                    tooltip: 'مسح البحث',
-                  )
-                : null,
-            filled: true,
-            fillColor:
-                isDark ? AppColors.darkCardSurface : AppColors.lightCardSurface,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide(
-                color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-              ),
+                  ),
+                ),
+                if (isMahafil) ...[
+                  const SizedBox(width: 8),
+                  BlocBuilder<RecitationListCubit, RecitationListState>(
+                    builder: (context, listState) {
+                      final canOpen = listState is RecitationListLoaded &&
+                          listState.recitations.isNotEmpty;
+                      final hasFilters = activeCount > 0;
+                      return Tooltip(
+                        message: 'تصفية حسب المكان والسور',
+                        child: Material(
+                          key: const ValueKey('mahafil_filter_button'),
+                          color: hasFilters ? gold.withAlpha(28) : cardBg,
+                          borderRadius: BorderRadius.circular(14),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(14),
+                            onTap: canOpen
+                                ? () => _openFilterModal(context, listState)
+                                : null,
+                            child: Container(
+                              height: 48,
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 12),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: hasFilters ? gold : border,
+                                  width: hasFilters ? 1.5 : 1.0,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.tune_rounded,
+                                    size: 19,
+                                    color: hasFilters ? gold : textSecondary,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    hasFilters
+                                        ? 'تصفية ($activeCount)'
+                                        : 'تصفية',
+                                    style: GoogleFonts.cairo(
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: hasFilters ? gold : textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ],
             ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide(
-                color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+            if (isMahafil && activeCount > 0)
+              BlocBuilder<RecitationListCubit, RecitationListState>(
+                builder: (context, listState) {
+                  if (listState is! RecitationListLoaded) {
+                    return const SizedBox.shrink();
+                  }
+                  final favoriteIds = widget.selectedTab == _ListTab.favorites
+                      ? context.watch<FavoritesCubit>().state.favoriteIds
+                      : null;
+                  final shownCount = _filterMahafilRecitations(
+                    items: listState.filtered,
+                    selectedTab: widget.selectedTab,
+                    placeGroup: widget.selectedPlaceGroup,
+                    surahCategory: widget.selectedSurahCategory,
+                    favoriteIds: favoriteIds,
+                  ).length;
+
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        if (widget.selectedPlaceGroup != null)
+                          _ActiveFilterChip(
+                            label: widget.selectedPlaceGroup == 'أخرى'
+                                ? 'المكان: محافل أخرى'
+                                : 'المكان: ${widget.selectedPlaceGroup}',
+                            gold: gold,
+                            onRemove: () => widget.onFiltersApplied(
+                              null,
+                              widget.selectedSurahCategory,
+                            ),
+                          ),
+                        if (widget.selectedSurahCategory != null)
+                          _ActiveFilterChip(
+                            label: 'السور: ${widget.selectedSurahCategory}',
+                            gold: gold,
+                            onRemove: () => widget.onFiltersApplied(
+                              widget.selectedPlaceGroup,
+                              null,
+                            ),
+                          ),
+                        Text(
+                          'النتائج: $shownCount تلاوة',
+                          style: GoogleFonts.cairo(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                            color: textSecondary,
+                          ),
+                        ),
+                        InkWell(
+                          borderRadius: BorderRadius.circular(10),
+                          onTap: widget.onResetFilters,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            child: Text(
+                              'إعادة ضبط الفلاتر',
+                              style: GoogleFonts.cairo(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w700,
+                                color: gold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+const List<String> _mahafilPlaceOrder = [
+  'المسجد الأقصى',
+  'مصر',
+  'سوريا ودمشق',
+  'الكويت',
+  'ليبيا',
+  'الإذاعة والاستوديو',
+  'أخرى',
+];
+
+const List<String> _mahafilSurahCategoryOrder = [
+  'البقرة والفاتحة',
+  'آل عمران',
+  'النساء والمائدة',
+  'الأنعام والأعراف والأنفال',
+  'التوبة ويونس وهود',
+  'يوسف',
+  'الرعد وإبراهيم والنحل',
+  'الإسراء والكهف',
+  'مريم وطه',
+  'الأنبياء والحج والمؤمنون',
+  'النور والفرقان والشعراء',
+  'النمل والقصص والعنكبوت',
+  'الروم ولقمان والأحزاب',
+  'سبأ إلى الأحقاف',
+  'ق والرحمن والواقعة',
+  'الحشر والصف',
+  'الفجر وقصار السور',
+];
+
+List<Recitation> _filterMahafilRecitations({
+  required List<Recitation> items,
+  required _ListTab selectedTab,
+  String? placeGroup,
+  String? surahCategory,
+  Set<String>? favoriteIds,
+}) {
+  Iterable<Recitation> result = items;
+
+  if (selectedTab == _ListTab.golden) {
+    result = result.where((r) => r.isRare);
+  } else if (selectedTab == _ListTab.favorites && favoriteIds != null) {
+    result = result.where((r) => favoriteIds.contains(r.id));
+  }
+
+  if (placeGroup != null || surahCategory != null) {
+    result = result.where((r) {
+      if (r is! NahawandRecitationModel) return false;
+      if (placeGroup != null && r.placeGroup != placeGroup) return false;
+      if (surahCategory != null && r.category != surahCategory) return false;
+      return true;
+    });
+  }
+
+  return result.toList();
+}
+
+class _ActiveFilterChip extends StatelessWidget {
+  final String label;
+  final Color gold;
+  final VoidCallback onRemove;
+
+  const _ActiveFilterChip({
+    required this.label,
+    required this.gold,
+    required this.onRemove,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+      decoration: BoxDecoration(
+        color: gold.withAlpha(26),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: gold.withAlpha(140)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: GoogleFonts.cairo(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w700,
+              color: gold,
             ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide(
-                color: isDark ? AppColors.goldPrimary : AppColors.goldDark,
-                width: 2,
-              ),
-            ),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),
-          onChanged: (q) {
-            context.read<RecitationListCubit>().search(q);
-            setState(() {});
-          },
+          const SizedBox(width: 4),
+          InkWell(
+            borderRadius: BorderRadius.circular(10),
+            onTap: onRemove,
+            child: Icon(Icons.close_rounded, size: 15, color: gold),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MahafilFilterModalContent extends StatefulWidget {
+  final bool isDark;
+  final List<Recitation> filteredItems;
+  final _ListTab selectedTab;
+  final Set<String>? favoriteIds;
+  final List<String> places;
+  final List<String> categories;
+  final String? initialPlace;
+  final String? initialCategory;
+  final void Function(String? place, String? category) onApply;
+
+  const _MahafilFilterModalContent({
+    required this.isDark,
+    required this.filteredItems,
+    required this.selectedTab,
+    required this.favoriteIds,
+    required this.places,
+    required this.categories,
+    required this.initialPlace,
+    required this.initialCategory,
+    required this.onApply,
+  });
+
+  @override
+  State<_MahafilFilterModalContent> createState() =>
+      _MahafilFilterModalContentState();
+}
+
+class _MahafilFilterModalContentState
+    extends State<_MahafilFilterModalContent> {
+  late String? _place;
+  late String? _category;
+
+  @override
+  void initState() {
+    super.initState();
+    _place = widget.initialPlace;
+    _category = widget.initialCategory;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final gold = widget.isDark ? AppColors.goldPrimary : AppColors.goldDark;
+    final cardBg =
+        widget.isDark ? AppColors.darkCardSurface : AppColors.lightCardSurface;
+    final border = widget.isDark ? AppColors.darkBorder : AppColors.lightBorder;
+    final textPrimary =
+        widget.isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+    final textSecondary = widget.isDark
+        ? AppColors.darkTextSecondary
+        : AppColors.lightTextSecondary;
+
+    final previewCount = _filterMahafilRecitations(
+      items: widget.filteredItems,
+      selectedTab: widget.selectedTab,
+      placeGroup: _place,
+      surahCategory: _category,
+      favoriteIds: widget.favoriteIds,
+    ).length;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+          child: Row(
+            children: [
+              Icon(Icons.tune_rounded, color: gold, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'تصفية المحافل',
+                style: GoogleFonts.cairo(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: textPrimary,
+                ),
+              ),
+              const Spacer(),
+              if (_place != null || _category != null)
+                TextButton(
+                  onPressed: () => setState(() {
+                    _place = null;
+                    _category = null;
+                  }),
+                  child: Text(
+                    'إعادة ضبط',
+                    style: GoogleFonts.cairo(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: gold,
+                    ),
+                  ),
+                ),
+              IconButton(
+                icon: Icon(Icons.close_rounded, color: textSecondary),
+                onPressed: () => Navigator.of(context).pop(),
+                tooltip: 'إغلاق',
+              ),
+            ],
+          ),
+        ),
+        Divider(height: 1, color: border),
+        Flexible(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (widget.places.isNotEmpty) ...[
+                  Row(
+                    children: [
+                      Icon(Icons.location_on_outlined, size: 16, color: gold),
+                      const SizedBox(width: 6),
+                      Text(
+                        'حسب المكان',
+                        style: GoogleFonts.cairo(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w700,
+                          color: textPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _FilterPillChip(
+                        label: 'الكل',
+                        isSelected: _place == null,
+                        gold: gold,
+                        cardBg: cardBg,
+                        border: border,
+                        textSecondary: textSecondary,
+                        isDark: widget.isDark,
+                        onTap: () => setState(() => _place = null),
+                      ),
+                      for (final p in widget.places)
+                        _FilterPillChip(
+                          label: p == 'أخرى' ? 'محافل أخرى' : p,
+                          isSelected: _place == p,
+                          gold: gold,
+                          cardBg: cardBg,
+                          border: border,
+                          textSecondary: textSecondary,
+                          isDark: widget.isDark,
+                          onTap: () =>
+                              setState(() => _place = _place == p ? null : p),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+                ],
+                if (widget.categories.isNotEmpty) ...[
+                  Row(
+                    children: [
+                      Icon(Icons.menu_book_outlined, size: 16, color: gold),
+                      const SizedBox(width: 6),
+                      Text(
+                        'حسب السور',
+                        style: GoogleFonts.cairo(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w700,
+                          color: textPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _FilterPillChip(
+                        label: 'الكل',
+                        isSelected: _category == null,
+                        gold: gold,
+                        cardBg: cardBg,
+                        border: border,
+                        textSecondary: textSecondary,
+                        isDark: widget.isDark,
+                        onTap: () => setState(() => _category = null),
+                      ),
+                      for (final c in widget.categories)
+                        _FilterPillChip(
+                          label: c,
+                          isSelected: _category == c,
+                          gold: gold,
+                          cardBg: cardBg,
+                          border: border,
+                          textSecondary: textSecondary,
+                          isDark: widget.isDark,
+                          onTap: () => setState(
+                            () => _category = _category == c ? null : c,
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+        Divider(height: 1, color: border),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+          child: SizedBox(
+            width: double.infinity,
+            height: 44,
+            child: ElevatedButton(
+              onPressed: () => widget.onApply(_place, _category),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: gold,
+                foregroundColor:
+                    widget.isDark ? AppColors.darkBackground : Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 0,
+              ),
+              child: Text(
+                'عرض النتائج ($previewCount تلاوة)',
+                style: GoogleFonts.cairo(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _FilterPillChip extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+  final Color gold;
+  final Color cardBg;
+  final Color border;
+  final Color textSecondary;
+  final bool isDark;
+  final VoidCallback onTap;
+
+  const _FilterPillChip({
+    required this.label,
+    required this.isSelected,
+    required this.gold,
+    required this.cardBg,
+    required this.border,
+    required this.textSecondary,
+    required this.isDark,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: isSelected ? gold : cardBg,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: isSelected ? gold : border,
+              width: 1,
+            ),
+          ),
+          child: Text(
+            label,
+            style: GoogleFonts.cairo(
+              fontSize: 12,
+              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+              color: isSelected
+                  ? (isDark ? AppColors.darkBackground : Colors.white)
+                  : textSecondary,
+            ),
+          ),
         ),
       ),
     );
@@ -710,7 +1426,10 @@ class _ResumePlaybackBannerState extends State<_ResumePlaybackBanner> {
             final lastId = settingsState.lastPlayedRecitationId;
             final lastSeconds = settingsState.lastPlayedPositionSeconds ?? 0;
 
-            if (lastId == null || lastSeconds < 5) {
+            if (lastId == null ||
+                lastId == 'radio_minshawi' ||
+                lastId.startsWith('radio_') ||
+                lastSeconds < 5) {
               return const SliverToBoxAdapter(child: SizedBox.shrink());
             }
 
@@ -750,10 +1469,11 @@ class _ResumePlaybackBannerState extends State<_ResumePlaybackBanner> {
                 final textSecondary = isDark
                     ? AppColors.darkTextSecondary
                     : AppColors.lightTextSecondary;
+                final hPad = MediaQuery.sizeOf(context).width >= 600 ? 20.0 : 16.0;
 
                 return SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                    padding: EdgeInsets.fromLTRB(hPad, 4, hPad, 8),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 14,
@@ -805,7 +1525,7 @@ class _ResumePlaybackBannerState extends State<_ResumePlaybackBanner> {
                                 ),
                                 const SizedBox(height: 1),
                                 Text(
-                                  'سورة ${recitation.surahNameAr} · عند ${Formatters.formatDuration(lastSeconds)}',
+                                  '${recitation.cleanSurahTitleWithVerses} · عند ${Formatters.formatDuration(lastSeconds)}',
                                   style: GoogleFonts.cairo(
                                     fontSize: 11,
                                     color: textSecondary,
@@ -882,8 +1602,22 @@ class _ResumePlaybackBannerState extends State<_ResumePlaybackBanner> {
 
 class _Body extends StatelessWidget {
   final bool isDark;
+  final String collectionId;
   final _ListTab selectedTab;
-  const _Body({required this.isDark, required this.selectedTab});
+  final String? selectedPlaceGroup;
+  final String? selectedSurahCategory;
+  final VoidCallback? onSwitchToAll;
+  final VoidCallback? onResetFilters;
+
+  const _Body({
+    required this.isDark,
+    required this.collectionId,
+    required this.selectedTab,
+    this.selectedPlaceGroup,
+    this.selectedSurahCategory,
+    this.onSwitchToAll,
+    this.onResetFilters,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -900,27 +1634,45 @@ class _Body extends StatelessWidget {
         }
 
         if (state is RecitationListLoaded) {
-          var items = state.filtered;
+          final favoriteIds = selectedTab == _ListTab.favorites
+              ? context.watch<FavoritesCubit>().state.favoriteIds
+              : null;
 
-          if (selectedTab == _ListTab.golden) {
-            items = items.where((r) => r.isRare).toList();
-          }
+          final items = _filterMahafilRecitations(
+            items: state.filtered,
+            selectedTab: selectedTab,
+            placeGroup: collectionId == 'nahawand' ? selectedPlaceGroup : null,
+            surahCategory:
+                collectionId == 'nahawand' ? selectedSurahCategory : null,
+            favoriteIds: favoriteIds,
+          );
 
-          if (selectedTab == _ListTab.favorites) {
-            final favoritesState = context.watch<FavoritesCubit>().state;
-            items =
-                items.where((r) => favoritesState.isFavorite(r.id)).toList();
-
-            if (items.isEmpty) {
+          if (items.isEmpty) {
+            final hasActiveFilter = selectedPlaceGroup != null ||
+                selectedSurahCategory != null;
+            if (selectedTab == _ListTab.favorites && !hasActiveFilter) {
               return SliverFillRemaining(
                 child: _FavoritesEmptyView(isDark: isDark),
               );
             }
-          }
 
-          if (items.isEmpty) {
+            final allTabCount = (collectionId == 'nahawand' &&
+                    selectedTab == _ListTab.golden)
+                ? _filterMahafilRecitations(
+                    items: state.filtered,
+                    selectedTab: _ListTab.all,
+                    placeGroup: selectedPlaceGroup,
+                    surahCategory: selectedSurahCategory,
+                  ).length
+                : 0;
+
             return SliverFillRemaining(
-              child: _EmptyView(isDark: isDark),
+              child: _EmptyView(
+                isDark: isDark,
+                allMahafilFallbackCount: allTabCount,
+                onSwitchToAll: allTabCount > 0 ? onSwitchToAll : null,
+                onResetFilters: hasActiveFilter ? onResetFilters : null,
+              ),
             );
           }
           return _RecitationList(items: items, isDark: isDark);
@@ -1021,32 +1773,92 @@ class _ErrorView extends StatelessWidget {
 
 class _EmptyView extends StatelessWidget {
   final bool isDark;
-  const _EmptyView({required this.isDark});
+  final int allMahafilFallbackCount;
+  final VoidCallback? onSwitchToAll;
+  final VoidCallback? onResetFilters;
+
+  const _EmptyView({
+    required this.isDark,
+    this.allMahafilFallbackCount = 0,
+    this.onSwitchToAll,
+    this.onResetFilters,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.search_off_rounded,
-            size: 56,
-            color: isDark
-                ? AppColors.darkTextTertiary
-                : AppColors.lightTextTertiary,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'لا توجد نتائج مطابقة للبحث',
-            style: GoogleFonts.cairo(
-              fontSize: 15,
+    final gold = isDark ? AppColors.goldPrimary : AppColors.goldDark;
+
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.search_off_rounded,
+              size: 56,
               color: isDark
-                  ? AppColors.darkTextSecondary
-                  : AppColors.lightTextSecondary,
+                  ? AppColors.darkTextTertiary
+                  : AppColors.lightTextTertiary,
             ),
-          ),
-        ],
+            const SizedBox(height: 16),
+            Text(
+              onSwitchToAll != null
+                  ? 'لا توجد نتائج ضمن المختارات الذهبية لهذه التصفية'
+                  : 'لا توجد نتائج مطابقة للبحث',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.cairo(
+                fontSize: 15,
+                color: isDark
+                    ? AppColors.darkTextSecondary
+                    : AppColors.lightTextSecondary,
+              ),
+            ),
+            if (onSwitchToAll != null || onResetFilters != null) ...[
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 10,
+                runSpacing: 8,
+                alignment: WrapAlignment.center,
+                children: [
+                  if (onSwitchToAll != null)
+                    ElevatedButton.icon(
+                      onPressed: onSwitchToAll,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: gold,
+                        foregroundColor:
+                            isDark ? AppColors.darkBackground : Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      icon: const Icon(Icons.list_alt_rounded, size: 18),
+                      label: Text(
+                        'عرض في كل المحافل ($allMahafilFallbackCount)',
+                        style: GoogleFonts.cairo(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  if (onResetFilters != null)
+                    OutlinedButton.icon(
+                      onPressed: onResetFilters,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: gold,
+                        side: BorderSide(color: gold.withAlpha(150)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      icon: const Icon(Icons.filter_alt_off_rounded, size: 18),
+                      label: Text(
+                        'إعادة ضبط الفلاتر',
+                        style: GoogleFonts.cairo(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -1127,7 +1939,7 @@ class _RecitationList extends StatelessWidget {
         sliver: SliverGrid(
           gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
             maxCrossAxisExtent: width > 1300 ? 460 : (width > 900 ? 420 : 460),
-            mainAxisExtent: 96,
+            mainAxisExtent: 106,
             crossAxisSpacing: 14,
             mainAxisSpacing: 14,
           ),
@@ -1195,7 +2007,7 @@ class _RecitationCardState extends State<_RecitationCard> {
           ),
         ),
         content: Text(
-          'هل تريد حذف تلاوة سورة ${widget.recitation.surahNameAr} من التخزين المحلي؟',
+          'هل تريد حذف ${widget.recitation.cleanSurahTitleWithVerses} من التخزين المحلي؟',
           style: GoogleFonts.cairo(
             fontSize: 13,
             color: widget.isDark
@@ -1614,7 +2426,7 @@ class _CardActionButtons extends StatelessWidget {
                           ),
                           const SizedBox(width: 10),
                           Text(
-                            'حذف من الهاتف',
+                            'حذف التنزيل',
                             style: GoogleFonts.cairo(
                               fontSize: 12.5,
                               fontWeight: FontWeight.w600,
@@ -1662,8 +2474,12 @@ class _CardActionButtons extends StatelessWidget {
                             'تم إلغاء التحميل',
                             style: GoogleFonts.cairo(color: Colors.white),
                           ),
+                          backgroundColor: AppColors.darkCardSurface,
                           duration: const Duration(seconds: 2),
                           behavior: SnackBarBehavior.floating,
+                          width: MediaQuery.sizeOf(context).width >= 600
+                              ? 420
+                              : null,
                         ),
                       );
                     },
@@ -1715,8 +2531,12 @@ class _CardActionButtons extends StatelessWidget {
                             'تم إلغاء التحميل',
                             style: GoogleFonts.cairo(color: Colors.white),
                           ),
+                          backgroundColor: AppColors.darkCardSurface,
                           duration: const Duration(seconds: 2),
                           behavior: SnackBarBehavior.floating,
+                          width: MediaQuery.sizeOf(context).width >= 600
+                              ? 420
+                              : null,
                         ),
                       );
                     },
@@ -1735,12 +2555,14 @@ class _CardActionButtons extends StatelessWidget {
                               backgroundColor: isDark
                                   ? AppColors.darkBorder
                                   : AppColors.lightBorder,
-                              color: Colors.white,
+                              color: gold,
                             ),
-                            const Icon(
+                            Icon(
                               Icons.play_arrow_rounded,
                               size: 16,
-                              color: Colors.white,
+                              color: isDark
+                                  ? AppColors.darkTextPrimary
+                                  : AppColors.lightTextPrimary,
                             ),
                           ],
                         ),

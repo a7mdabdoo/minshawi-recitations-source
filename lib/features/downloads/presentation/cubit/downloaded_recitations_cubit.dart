@@ -13,7 +13,6 @@ import '../../../recitations/data/datasources/manifest_data_source.dart';
 import '../../../recitations/domain/entities/recitation.dart';
 import '../../../recitations/presentation/cubit/download_cubit.dart';
 import '../../../recitations/presentation/cubit/download_state.dart';
-import '../../../recitations/presentation/cubit/nahawand_cubit.dart';
 import '../../../recitations/presentation/cubit/recitation_list_cubit.dart';
 import 'downloaded_recitations_state.dart';
 
@@ -22,7 +21,6 @@ class DownloadedRecitationsCubit extends Cubit<DownloadedRecitationsState> {
   final LocalRecitationDataSource _localDataSource;
   final DownloadService _downloadService;
   final RecitationListCubit? _recitationListCubit;
-  final NahawandCubit? _nahawandCubit;
   final DownloadCubit? _downloadCubit;
 
   StreamSubscription<DownloadState>? _downloadSub;
@@ -32,13 +30,11 @@ class DownloadedRecitationsCubit extends Cubit<DownloadedRecitationsState> {
     required LocalRecitationDataSource localDataSource,
     required DownloadService downloadService,
     RecitationListCubit? recitationListCubit,
-    NahawandCubit? nahawandCubit,
     DownloadCubit? downloadCubit,
   })  : _manifestDataSource = manifestDataSource,
         _localDataSource = localDataSource,
         _downloadService = downloadService,
         _recitationListCubit = recitationListCubit,
-        _nahawandCubit = nahawandCubit,
         _downloadCubit = downloadCubit,
         super(const DownloadedRecitationsInitial()) {
     _listenToDownloadCubit();
@@ -229,17 +225,19 @@ class DownloadedRecitationsCubit extends Cubit<DownloadedRecitationsState> {
 
     final trimmedQuery = query.trim();
     if (trimmedQuery.isNotEmpty) {
+      final tokens = ArabicNormalizer.tokenizeQuery(trimmedQuery);
       result = result.where((r) {
-        return ArabicNormalizer.matchesMultiToken(
-          query: trimmedQuery,
-          sources: [
+        return ArabicNormalizer.matchesPreparedCached(
+          tokens: tokens,
+          cacheKey: r,
+          sourcesBuilder: () => [
             r.surahNameAr,
             r.cleanSurahTitleWithVerses,
             r.recordingLocation,
             r.cleanLocationOrDetail,
             r.recordingYear,
             r.sourceLabel,
-            r.verseRange,
+            if (r.isMahfel) r.verseRange,
             r.surahNumber.toString(),
           ],
         );
@@ -258,7 +256,6 @@ class DownloadedRecitationsCubit extends Cubit<DownloadedRecitationsState> {
       await _localDataSource.removeDownloadedPath(recitation.id);
 
       _recitationListCubit?.markRemoved(recitation.id);
-      _nahawandCubit?.markAsDeleted(recitation.id);
 
       final updatedAll =
           current.allDownloaded.where((r) => r.id != recitation.id).toList();

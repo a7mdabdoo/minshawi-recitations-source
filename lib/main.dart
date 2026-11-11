@@ -20,7 +20,6 @@ import 'features/playlists/presentation/cubit/playlists_cubit.dart';
 import 'features/player/presentation/cubit/audio_player_cubit.dart';
 import 'features/player/presentation/cubit/sleep_timer_cubit.dart';
 import 'features/recitations/presentation/cubit/download_cubit.dart';
-import 'features/recitations/presentation/cubit/nahawand_cubit.dart';
 import 'features/recitations/presentation/cubit/recitation_list_cubit.dart';
 
 void main() async {
@@ -130,7 +129,6 @@ class AlMinshawIApp extends StatelessWidget {
         BlocProvider<SleepTimerCubit>.value(value: sl<SleepTimerCubit>()),
         BlocProvider<RecitationListCubit>.value(
             value: sl<RecitationListCubit>()),
-        BlocProvider<NahawandCubit>.value(value: sl<NahawandCubit>()),
         BlocProvider<DownloadCubit>.value(value: sl<DownloadCubit>()),
         BlocProvider<DownloadedRecitationsCubit>.value(
             value: sl<DownloadedRecitationsCubit>()),
@@ -156,10 +154,16 @@ class AlMinshawIApp extends StatelessWidget {
               GlobalCupertinoLocalizations.delegate,
             ],
             builder: (context, child) {
-              return Directionality(
+              final content = Directionality(
                 textDirection: TextDirection.rtl,
                 child: child!,
               );
+              // Workaround for Flutter 3.47 Windows AccessibilityBridge
+              // crash in ui::AXTree updates during layout/fullscreen changes.
+              if (!kIsWeb && defaultTargetPlatform == TargetPlatform.windows) {
+                return ExcludeSemantics(child: content);
+              }
+              return content;
             },
           );
         },

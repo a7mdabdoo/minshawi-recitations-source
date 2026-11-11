@@ -13,7 +13,6 @@ import '../../features/recitations/data/datasources/manifest_data_source.dart';
 import '../../features/recitations/data/repositories/recitation_repository_impl.dart';
 import '../../features/recitations/domain/repositories/recitation_repository.dart';
 import '../../features/recitations/presentation/cubit/download_cubit.dart';
-import '../../features/recitations/presentation/cubit/nahawand_cubit.dart';
 import '../../features/recitations/presentation/cubit/recitation_list_cubit.dart';
 import '../constants/app_constants.dart';
 import '../network/dio_client.dart';
@@ -145,18 +144,10 @@ Future<void> setupServiceLocator() async {
       () => RecitationListCubit(sl<RecitationRepository>()),
     );
 
-    _registerLazySingletonSafe<NahawandCubit>(
-      () => NahawandCubit(
-        manifestDataSource: sl<ManifestDataSource>(),
-        localDataSource: sl<LocalRecitationDataSource>(),
-      ),
-    );
-
     _registerLazySingletonSafe<DownloadCubit>(
       () => DownloadCubit(
         downloadService: sl<DownloadService>(),
         recitationListCubit: sl<RecitationListCubit>(),
-        nahawandCubit: sl<NahawandCubit>(),
       ),
     );
 
@@ -166,7 +157,6 @@ Future<void> setupServiceLocator() async {
         localDataSource: sl<LocalRecitationDataSource>(),
         downloadService: sl<DownloadService>(),
         recitationListCubit: sl<RecitationListCubit>(),
-        nahawandCubit: sl<NahawandCubit>(),
         downloadCubit: sl<DownloadCubit>(),
       ),
     );
@@ -281,17 +271,6 @@ void ensureFallbackServiceLocator() {
     );
   }
 
-  if (!sl.isRegistered<NahawandCubit>()) {
-    _registerLazySingletonSafe<NahawandCubit>(
-      () => NahawandCubit(
-        manifestDataSource: sl.isRegistered<ManifestDataSource>()
-            ? sl<ManifestDataSource>()
-            : const ManifestDataSource(),
-        localDataSource: sl<LocalRecitationDataSource>(),
-      ),
-    );
-  }
-
   if (!sl.isRegistered<DownloadService>()) {
     _registerLazySingletonSafe<DownloadService>(
       () => DownloadService(
@@ -306,7 +285,6 @@ void ensureFallbackServiceLocator() {
       () => DownloadCubit(
         downloadService: sl<DownloadService>(),
         recitationListCubit: sl<RecitationListCubit>(),
-        nahawandCubit: sl<NahawandCubit>(),
       ),
     );
   }
@@ -320,7 +298,6 @@ void ensureFallbackServiceLocator() {
         localDataSource: sl<LocalRecitationDataSource>(),
         downloadService: sl<DownloadService>(),
         recitationListCubit: sl<RecitationListCubit>(),
-        nahawandCubit: sl<NahawandCubit>(),
         downloadCubit: sl<DownloadCubit>(),
       ),
     );

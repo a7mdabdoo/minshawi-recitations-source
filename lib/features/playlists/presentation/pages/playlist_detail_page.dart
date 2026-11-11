@@ -331,6 +331,7 @@ class PlaylistDetailPage extends StatelessWidget {
               0,
               (sum, r) => sum + r.durationSeconds,
             );
+            final isLarge = MediaQuery.sizeOf(context).width >= 600;
 
             return Scaffold(
               backgroundColor: bg,
@@ -385,161 +386,175 @@ class PlaylistDetailPage extends StatelessWidget {
                       textPrimary: textPrimary,
                       textSecondary: textSecondary,
                     )
-                  : ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
-                      addAutomaticKeepAlives: false,
-                      addRepaintBoundaries: true,
-                      itemCount: playlistRecitations.length + 1,
-                      itemBuilder: (context, index) {
-                        if (index == 0) {
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 16),
-                            child: Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                  colors: isDark
-                                      ? [
-                                          gold.withAlpha(45),
-                                          AppColors.darkCardSurface,
-                                        ]
-                                      : [
-                                          gold.withAlpha(30),
-                                          AppColors.lightCardSurface,
-                                        ],
-                                ),
-                                borderRadius: BorderRadius.circular(18),
-                                border: Border.all(
-                                  color: gold.withAlpha(isDark ? 80 : 50),
-                                  width: 1.2,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black
-                                        .withAlpha(isDark ? 50 : 15),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 3),
-                                  ),
-                                ],
-                              ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 48,
-                                    height: 48,
-                                    decoration: BoxDecoration(
-                                      color: gold.withAlpha(isDark ? 40 : 25),
-                                      shape: BoxShape.circle,
+                  : Center(
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxWidth: isLarge ? 960 : double.infinity,
+                        ),
+                        child: ListView.builder(
+                          padding: EdgeInsets.fromLTRB(
+                            isLarge ? 24 : 16,
+                            isLarge ? 16 : 8,
+                            isLarge ? 24 : 16,
+                            isLarge ? 24 : 96,
+                          ),
+                          addAutomaticKeepAlives: false,
+                          addRepaintBoundaries: true,
+                          itemCount: playlistRecitations.length + 1,
+                          itemBuilder: (context, index) {
+                            if (index == 0) {
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 16),
+                                child: Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                      colors: isDark
+                                          ? [
+                                              gold.withAlpha(45),
+                                              AppColors.darkCardSurface,
+                                            ]
+                                          : [
+                                              gold.withAlpha(30),
+                                              AppColors.lightCardSurface,
+                                            ],
                                     ),
-                                    child: Icon(
-                                      Icons.playlist_play_rounded,
-                                      color: gold,
-                                      size: 28,
+                                    borderRadius: BorderRadius.circular(18),
+                                    border: Border.all(
+                                      color: gold.withAlpha(isDark ? 80 : 50),
+                                      width: 1.2,
                                     ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black
+                                            .withAlpha(isDark ? 50 : 15),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 3),
+                                      ),
+                                    ],
                                   ),
-                                  const SizedBox(width: 14),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          '${playlistRecitations.length} تلاوات',
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 48,
+                                        height: 48,
+                                        decoration: BoxDecoration(
+                                          color: gold.withAlpha(isDark ? 40 : 25),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Icon(
+                                          Icons.playlist_play_rounded,
+                                          color: gold,
+                                          size: 28,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 14),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              '${playlistRecitations.length} تلاوات',
+                                              style: GoogleFonts.cairo(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w700,
+                                                color: textPrimary,
+                                              ),
+                                            ),
+                                            Text(
+                                              'إجمالي المدة: ${Formatters.formatDuration(totalSeconds)}',
+                                              style: GoogleFonts.cairo(
+                                                fontSize: 11.5,
+                                                color: textSecondary,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      ElevatedButton.icon(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: gold,
+                                          foregroundColor: isDark
+                                              ? AppColors.darkBackground
+                                              : Colors.white,
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                            vertical: 10,
+                                          ),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                          ),
+                                          elevation: 0,
+                                        ),
+                                        icon: const Icon(
+                                          Icons.play_arrow_rounded,
+                                          size: 20,
+                                        ),
+                                        label: Text(
+                                          'تشغيل الكل',
                                           style: GoogleFonts.cairo(
-                                            fontSize: 14,
+                                            fontSize: 12.5,
                                             fontWeight: FontWeight.w700,
-                                            color: textPrimary,
                                           ),
                                         ),
-                                        Text(
-                                          'إجمالي المدة: ${Formatters.formatDuration(totalSeconds)}',
-                                          style: GoogleFonts.cairo(
-                                            fontSize: 11.5,
-                                            color: textSecondary,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  ElevatedButton.icon(
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: gold,
-                                      foregroundColor: isDark
-                                          ? AppColors.darkBackground
-                                          : Colors.white,
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 16,
-                                        vertical: 10,
+                                        onPressed: () {
+                                          if (playlistRecitations.isNotEmpty) {
+                                            context.read<AudioPlayerCubit>().play(
+                                                  playlistRecitations.first,
+                                                  playlist: playlistRecitations,
+                                                );
+                                          }
+                                        },
                                       ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      elevation: 0,
-                                    ),
-                                    icon: const Icon(
-                                      Icons.play_arrow_rounded,
-                                      size: 20,
-                                    ),
-                                    label: Text(
-                                      'تشغيل الكل',
-                                      style: GoogleFonts.cairo(
-                                        fontSize: 12.5,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                    onPressed: () {
-                                      if (playlistRecitations.isNotEmpty) {
-                                        context.read<AudioPlayerCubit>().play(
-                                              playlistRecitations.first,
-                                              playlist: playlistRecitations,
-                                            );
-                                      }
-                                    },
+                                    ],
                                   ),
-                                ],
-                              ),
-                            ),
-                          );
-                        }
-
-                        final trackIndex = index - 1;
-                        final recitation = playlistRecitations[trackIndex];
-
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 10),
-                          child: _PlaylistRecitationCard(
-                            recitation: recitation,
-                            index: trackIndex + 1,
-                            playlistRecitations: playlistRecitations,
-                            isDark: isDark,
-                            gold: gold,
-                            cardBg: cardBg,
-                            textPrimary: textPrimary,
-                            textSecondary: textSecondary,
-                            onRemove: () {
-                              context
-                                  .read<PlaylistsCubit>()
-                                  .removeRecitationFromPlaylist(
-                                    playlistId,
-                                    recitation.id,
-                                  );
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    'تمت إزالة سورة ${recitation.surahNameAr} من القائمة',
-                                    style:
-                                        GoogleFonts.cairo(color: Colors.white),
-                                  ),
-                                  duration: const Duration(seconds: 2),
-                                  behavior: SnackBarBehavior.floating,
                                 ),
                               );
-                            },
-                          ),
-                        );
-                      },
+                            }
+
+                            final trackIndex = index - 1;
+                            final recitation = playlistRecitations[trackIndex];
+
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: _PlaylistRecitationCard(
+                                recitation: recitation,
+                                index: trackIndex + 1,
+                                playlistRecitations: playlistRecitations,
+                                isDark: isDark,
+                                gold: gold,
+                                cardBg: cardBg,
+                                textPrimary: textPrimary,
+                                textSecondary: textSecondary,
+                                onRemove: () {
+                                  context
+                                      .read<PlaylistsCubit>()
+                                      .removeRecitationFromPlaylist(
+                                        playlistId,
+                                        recitation.id,
+                                      );
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'تمت إزالة ${recitation.cleanSurahTitleWithVerses} من القائمة',
+                                        style: GoogleFonts.cairo(
+                                            color: Colors.white),
+                                      ),
+                                      width: isLarge ? 420 : null,
+                                      duration: const Duration(seconds: 2),
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
+                                },
+                              ),
+                            );
+                          },
+                        ),
+                      ),
                     ),
             );
           },

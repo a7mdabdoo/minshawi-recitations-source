@@ -17,8 +17,6 @@ import '../../../playlists/presentation/widgets/add_to_playlist_bottom_sheet.dar
 import '../../../recitations/domain/entities/recitation.dart';
 import '../../../recitations/presentation/cubit/download_cubit.dart';
 import '../../../recitations/presentation/cubit/download_state.dart';
-import '../../../recitations/presentation/cubit/nahawand_cubit.dart';
-import '../../../recitations/presentation/cubit/nahawand_state.dart';
 import '../../../recitations/presentation/cubit/recitation_list_cubit.dart';
 import '../../../recitations/presentation/cubit/recitation_list_state.dart';
 import '../cubit/audio_player_cubit.dart';
@@ -79,18 +77,6 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
     final playerCubit = context.read<AudioPlayerCubit>();
     if (playerCubit.currentRecitation?.id == targetId) return;
 
-    if (targetId.startsWith('nahawand_')) {
-      final nahawandState = context.read<NahawandCubit>().state;
-      if (nahawandState is NahawandLoaded) {
-        final match =
-            nahawandState.allRecitations.where((r) => r.id == targetId);
-        if (match.isNotEmpty) {
-          playerCubit.play(match.first);
-          return;
-        }
-      }
-    }
-
     final listState = context.read<RecitationListCubit>().state;
     if (listState is RecitationListLoaded) {
       final match = listState.recitations.where((r) => r.id == targetId);
@@ -107,6 +93,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
     required Color gold,
     required bool isDark,
   }) {
+    final isLarge = MediaQuery.sizeOf(context).width >= 600;
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -129,6 +116,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
         backgroundColor:
             isDark ? AppColors.darkCardSurface : const Color(0xFF0F172A),
         behavior: SnackBarBehavior.floating,
+        width: isLarge ? 420 : null,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(14),
           side: BorderSide(
@@ -377,7 +365,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
               color: textPrimary,
             ),
           ),
-          if (recitation != null)
+          if (recitation != null && !recitation.isRadio)
             IconButton(
               icon: Icon(
                 Icons.playlist_add_rounded,
@@ -500,7 +488,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
             ),
           ),
           const SizedBox(width: 12),
-          if (recitation != null)
+          if (recitation != null && !recitation.isRadio)
             BlocBuilder<FavoritesCubit, FavoritesState>(
               builder: (context, favState) {
                 final isFav = favState.isFavorite(recitation.id);
@@ -536,6 +524,9 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
     final isError = state is AudioPlayerError;
     final isPlaying = state is AudioPlayerReady && state.isPlaying;
     final isBuffering = state is AudioPlayerReady && state.isBuffering;
+    final isRadio =
+        state.currentRecitation?.isRadio ?? cubit.currentRecitation?.isRadio ?? false;
+    final controlsDisabled = isLoading || isError || isRadio;
 
     return Directionality(
       textDirection: TextDirection.ltr,
@@ -546,24 +537,24 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
           IconButton(
             icon: Icon(
               Icons.skip_previous_rounded,
-              color: (isLoading || isError)
+              color: controlsDisabled
                   ? textSecondary.withAlpha(70)
                   : textPrimary,
               size: 28,
             ),
-            tooltip: 'السورة السابقة',
-            onPressed: (isLoading || isError) ? null : cubit.playPrevious,
+            tooltip: isRadio ? 'غير متاح في البث المباشر' : 'السورة السابقة',
+            onPressed: controlsDisabled ? null : cubit.playPrevious,
           ),
           IconButton(
             icon: Icon(
               Icons.replay_10_rounded,
-              color: (isLoading || isError)
+              color: controlsDisabled
                   ? textSecondary.withAlpha(70)
                   : textPrimary,
               size: 26,
             ),
-            tooltip: 'تأخير ١٠ ثوانٍ',
-            onPressed: (isLoading || isError) ? null : cubit.skipBackward,
+            tooltip: isRadio ? 'غير متاح في البث المباشر' : 'تأخير ١٠ ثوانٍ',
+            onPressed: controlsDisabled ? null : cubit.skipBackward,
           ),
           _buildPlayPauseFab(
             cubit: cubit,
@@ -578,24 +569,24 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
           IconButton(
             icon: Icon(
               Icons.forward_10_rounded,
-              color: (isLoading || isError)
+              color: controlsDisabled
                   ? textSecondary.withAlpha(70)
                   : textPrimary,
               size: 26,
             ),
-            tooltip: 'تقديم ١٠ ثوانٍ',
-            onPressed: (isLoading || isError) ? null : cubit.skipForward,
+            tooltip: isRadio ? 'غير متاح في البث المباشر' : 'تقديم ١٠ ثوانٍ',
+            onPressed: controlsDisabled ? null : cubit.skipForward,
           ),
           IconButton(
             icon: Icon(
               Icons.skip_next_rounded,
-              color: (isLoading || isError)
+              color: controlsDisabled
                   ? textSecondary.withAlpha(70)
                   : textPrimary,
               size: 28,
             ),
-            tooltip: 'السورة التالية',
-            onPressed: (isLoading || isError) ? null : cubit.playNext,
+            tooltip: isRadio ? 'غير متاح في البث المباشر' : 'السورة التالية',
+            onPressed: controlsDisabled ? null : cubit.playNext,
           ),
         ],
       ),
@@ -676,14 +667,19 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
     Color cardBorder,
     bool isDark,
   ) {
-    final currentSpeed = state is AudioPlayerReady ? state.speed : cubit.speed;
-    final currentLoopMode =
-        state is AudioPlayerReady ? state.loopMode : cubit.loopMode;
-    final isShuffleEnabled = state is AudioPlayerReady
-        ? state.isShuffleEnabled
-        : cubit.isShuffleEnabled;
+    final isRadio = recitation?.isRadio ?? false;
+    final currentSpeed = isRadio
+        ? 1.0
+        : (state is AudioPlayerReady ? state.speed : cubit.speed);
+    final currentLoopMode = isRadio
+        ? LoopMode.off
+        : (state is AudioPlayerReady ? state.loopMode : cubit.loopMode);
+    final isShuffleEnabled = !isRadio &&
+        (state is AudioPlayerReady
+            ? state.isShuffleEnabled
+            : cubit.isShuffleEnabled);
     final ready = state is AudioPlayerReady ? state : null;
-    final abState = ready?.abLoopState ?? cubit.abLoopState;
+    final abState = isRadio ? AbLoopState.off : (ready?.abLoopState ?? cubit.abLoopState);
     final isAbActive = abState != AbLoopState.off;
 
     return Padding(
@@ -692,25 +688,32 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: () => _showSpeedDialog(
-              context,
-              cubit,
-              currentSpeed,
-              gold,
-              cardSurface,
-              cardBorder,
-              isDark,
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-              child: Text(
-                currentSpeed == 1.0 ? '1.0x' : '${currentSpeed}x',
-                style: GoogleFonts.cairo(
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w700,
-                  color: currentSpeed != 1.0 ? gold : textSecondary,
+          Tooltip(
+            message: isRadio ? 'غير متاح في البث المباشر' : 'سرعة التلاوة',
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: isRadio
+                  ? null
+                  : () => _showSpeedDialog(
+                        context,
+                        cubit,
+                        currentSpeed,
+                        gold,
+                        cardSurface,
+                        cardBorder,
+                        isDark,
+                      ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                child: Text(
+                  currentSpeed == 1.0 ? '1.0x' : '${currentSpeed}x',
+                  style: GoogleFonts.cairo(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    color: isRadio
+                        ? textSecondary.withAlpha(90)
+                        : (currentSpeed != 1.0 ? gold : textSecondary),
+                  ),
                 ),
               ),
             ),
@@ -765,20 +768,36 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
               );
             },
           ),
-          _buildRepeatButton(currentLoopMode, cubit, gold, textSecondary),
-          _buildShuffleButton(isShuffleEnabled, cubit, gold, textSecondary),
+          _buildRepeatButton(
+            currentLoopMode,
+            cubit,
+            gold,
+            textSecondary,
+            isRadio: isRadio,
+          ),
+          _buildShuffleButton(
+            isShuffleEnabled,
+            cubit,
+            gold,
+            textSecondary,
+            isRadio: isRadio,
+          ),
           Tooltip(
-            message: 'تكرار مقطع للحفظ (A-B)',
+            message: isRadio
+                ? 'غير متاح في البث المباشر'
+                : 'تكرار مقطع للحفظ (A-B)',
             child: InkWell(
               borderRadius: BorderRadius.circular(12),
-              onTap: () => _showAbRepeatBottomSheet(
-                context,
-                cubit,
-                gold,
-                cardSurface,
-                cardBorder,
-                isDark,
-              ),
+              onTap: isRadio
+                  ? null
+                  : () => _showAbRepeatBottomSheet(
+                        context,
+                        cubit,
+                        gold,
+                        cardSurface,
+                        cardBorder,
+                        isDark,
+                      ),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                 child: Row(
@@ -787,7 +806,9 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
                     Icon(
                       Icons.repeat_on_rounded,
                       size: 19,
-                      color: isAbActive ? gold : textSecondary,
+                      color: isRadio
+                          ? textSecondary.withAlpha(90)
+                          : (isAbActive ? gold : textSecondary),
                     ),
                     const SizedBox(width: 4),
                     Text(
@@ -795,7 +816,9 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
                       style: GoogleFonts.cairo(
                         fontSize: 12.5,
                         fontWeight: FontWeight.w700,
-                        color: isAbActive ? gold : textSecondary,
+                        color: isRadio
+                            ? textSecondary.withAlpha(90)
+                            : (isAbActive ? gold : textSecondary),
                       ),
                     ),
                   ],
@@ -803,7 +826,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
               ),
             ),
           ),
-          if (recitation != null)
+          if (recitation != null && !recitation.isRadio)
             _buildDownloadButton(
               context,
               recitation,
@@ -820,30 +843,35 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
     LoopMode loopMode,
     AudioPlayerCubit cubit,
     Color gold,
-    Color textSecondary,
-  ) {
-    final isActive = loopMode != LoopMode.off;
+    Color textSecondary, {
+    bool isRadio = false,
+  }) {
+    final isActive = !isRadio && loopMode != LoopMode.off;
     final IconData icon = switch (loopMode) {
       LoopMode.one => Icons.repeat_one_rounded,
       _ => Icons.repeat_rounded,
     };
-    final tooltip = switch (loopMode) {
-      LoopMode.off => 'التكرار: معطل',
-      LoopMode.all => 'التكرار: تكرار الكل',
-      LoopMode.one => 'التكرار: تكرار السورة',
-    };
+    final tooltip = isRadio
+        ? 'غير متاح في البث المباشر'
+        : switch (loopMode) {
+            LoopMode.off => 'التكرار: معطل',
+            LoopMode.all => 'التكرار: تكرار الكل',
+            LoopMode.one => 'التكرار: تكرار السورة',
+          };
 
     return Tooltip(
       message: tooltip,
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: cubit.toggleLoopMode,
+        onTap: isRadio ? null : cubit.toggleLoopMode,
         child: Padding(
           padding: const EdgeInsets.all(8),
           child: Icon(
             icon,
             size: 22,
-            color: isActive ? gold : textSecondary,
+            color: isRadio
+                ? textSecondary.withAlpha(90)
+                : (isActive ? gold : textSecondary),
           ),
         ),
       ),
@@ -854,21 +882,26 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
     bool isShuffleEnabled,
     AudioPlayerCubit cubit,
     Color gold,
-    Color textSecondary,
-  ) {
+    Color textSecondary, {
+    bool isRadio = false,
+  }) {
     return Tooltip(
-      message: isShuffleEnabled
-          ? 'التشغيل العشوائي: مفعّل'
-          : 'التشغيل العشوائي: معطّل',
+      message: isRadio
+          ? 'غير متاح في البث المباشر'
+          : (isShuffleEnabled
+              ? 'التشغيل العشوائي: مفعّل'
+              : 'التشغيل العشوائي: معطّل'),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: cubit.toggleShuffle,
+        onTap: isRadio ? null : cubit.toggleShuffle,
         child: Padding(
           padding: const EdgeInsets.all(8),
           child: Icon(
             Icons.shuffle_rounded,
             size: 22,
-            color: isShuffleEnabled ? gold : textSecondary,
+            color: isRadio
+                ? textSecondary.withAlpha(90)
+                : (isShuffleEnabled ? gold : textSecondary),
           ),
         ),
       ),
@@ -882,6 +915,9 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
     Color textSecondary,
     bool isDark,
   ) {
+    if (recitation.isRadio) {
+      return const SizedBox(width: 40);
+    }
     return BlocBuilder<RecitationListCubit, RecitationListState>(
       builder: (context, listState) {
         final isDownloaded = recitation.isDownloaded ||
@@ -973,7 +1009,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
                   context.read<DownloadCubit>().startDownload(recitation);
                   _showFeedback(
                     context,
-                    'بدء تحميل تلاوة ${recitation.surahNameAr}...',
+                    'بدء تحميل ${recitation.cleanSurahTitleWithVerses}...',
                     icon: Icons.file_download_outlined,
                     gold: gold,
                     isDark: isDark,
@@ -1131,6 +1167,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: cardSurface,
+      constraints: const BoxConstraints(maxWidth: 540),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -1582,6 +1619,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: cardSurface,
+      constraints: const BoxConstraints(maxWidth: 540),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -1878,11 +1916,14 @@ class _DesktopPlaylistPanelState extends State<_DesktopPlaylistPanel> {
           r.recordingLocation,
           r.cleanLocationOrDetail,
           r.recordingYear,
+          if (r.isMahfel) r.verseRange,
           r.sourceLabel,
           r.surahNumber.toString(),
         ],
       );
     }).toList();
+
+    final isPlayingRadio = widget.currentRecitation?.isRadio == true;
 
     return Container(
       decoration: BoxDecoration(
@@ -1899,7 +1940,9 @@ class _DesktopPlaylistPanelState extends State<_DesktopPlaylistPanel> {
                 Icon(Icons.queue_music_rounded, color: widget.gold, size: 22),
                 const SizedBox(width: 8),
                 Text(
-                  'قائمة السور والتلاوات (${widget.playlist.length})',
+                  widget.playlist.isNotEmpty
+                      ? 'قائمة السور والتلاوات (${widget.playlist.length})'
+                      : 'قائمة السور والتلاوات',
                   style: GoogleFonts.cairo(
                     fontSize: 14.5,
                     fontWeight: FontWeight.w700,
@@ -1909,62 +1952,100 @@ class _DesktopPlaylistPanelState extends State<_DesktopPlaylistPanel> {
               ],
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            child: TextField(
-              controller: _searchController,
-              textDirection: TextDirection.rtl,
-              style: GoogleFonts.cairo(
-                fontSize: 13,
-                color: widget.textPrimary,
-              ),
-              onChanged: (val) => setState(() => _query = val.trim()),
-              decoration: InputDecoration(
-                hintText: 'بحث في قائمة السور...',
-                hintStyle: GoogleFonts.cairo(
-                  fontSize: 12.5,
-                  color: widget.textSecondary,
+          if (widget.playlist.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: TextField(
+                controller: _searchController,
+                textDirection: TextDirection.rtl,
+                style: GoogleFonts.cairo(
+                  fontSize: 13,
+                  color: widget.textPrimary,
                 ),
-                prefixIcon: Icon(
-                  Icons.search_rounded,
-                  size: 19,
-                  color: widget.gold,
-                ),
-                suffixIcon: _query.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear_rounded, size: 16),
-                        onPressed: () {
-                          _searchController.clear();
-                          setState(() => _query = '');
-                        },
-                      )
-                    : null,
-                filled: true,
-                fillColor: (widget.isDark ? Colors.white : Colors.black).withAlpha(12),
-                isDense: true,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: widget.cardBorder),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: widget.gold, width: 1.2),
+                onChanged: (val) => setState(() => _query = val.trim()),
+                decoration: InputDecoration(
+                  hintText: 'بحث في قائمة السور...',
+                  hintStyle: GoogleFonts.cairo(
+                    fontSize: 12.5,
+                    color: widget.textSecondary,
+                  ),
+                  prefixIcon: Icon(
+                    Icons.search_rounded,
+                    size: 19,
+                    color: widget.gold,
+                  ),
+                  suffixIcon: _query.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear_rounded, size: 16),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() => _query = '');
+                          },
+                        )
+                      : null,
+                  filled: true,
+                  fillColor:
+                      (widget.isDark ? Colors.white : Colors.black).withAlpha(12),
+                  isDense: true,
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: widget.cardBorder),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: widget.gold, width: 1.2),
+                  ),
                 ),
               ),
             ),
-          ),
           const SizedBox(height: 6),
           Expanded(
             child: filtered.isEmpty
                 ? Center(
-                    child: Text(
-                      'لا توجد تلاوات مطابقة للبحث',
-                      style: GoogleFonts.cairo(
-                        fontSize: 12.5,
-                        color: widget.textSecondary,
-                      ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: widget.playlist.isEmpty && isPlayingRadio
+                          ? Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.radio_rounded,
+                                  size: 38,
+                                  color: widget.gold.withAlpha(190),
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'يتم الآن الاستماع إلى البث المباشر لإذاعة القرآن الكريم',
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.cairo(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: widget.textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'البث مستمر على مدار ٢٤ ساعة بدون انقطاع',
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.cairo(
+                                    fontSize: 11.5,
+                                    color: widget.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Text(
+                              widget.playlist.isEmpty
+                                  ? 'لا توجد تلاوات في القائمة الحالية'
+                                  : 'لا توجد تلاوات مطابقة للبحث',
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.cairo(
+                                fontSize: 12.5,
+                                color: widget.textSecondary,
+                              ),
+                            ),
                     ),
                   )
                 : ListView.builder(
@@ -2013,16 +2094,20 @@ class _DesktopPlaylistPanelState extends State<_DesktopPlaylistPanel> {
                                       size: 16,
                                       color: Colors.black,
                                     )
-                                  : Text(
-                                      item.surahNumber.toString(),
-                                      style: GoogleFonts.cairo(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w700,
-                                        color: isCurrent
-                                            ? Colors.black
-                                            : widget.textSecondary,
-                                      ),
-                                    ),
+                                  : (item.isRadio
+                                      ? Icon(
+                                          Icons.radio_rounded,
+                                          size: 16,
+                                          color: widget.textSecondary,
+                                        )
+                                      : Text(
+                                          item.surahNumber.toString(),
+                                          style: GoogleFonts.cairo(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w700,
+                                            color: widget.textSecondary,
+                                          ),
+                                        )),
                             ),
                           ),
                           title: Text(
@@ -2049,7 +2134,9 @@ class _DesktopPlaylistPanelState extends State<_DesktopPlaylistPanel> {
                             overflow: TextOverflow.ellipsis,
                           ),
                           trailing: Text(
-                            Formatters.formatDuration(item.durationSeconds),
+                            (item.isRadio || item.durationSeconds == 0)
+                                ? 'مباشر'
+                                : Formatters.formatDuration(item.durationSeconds),
                             style: GoogleFonts.cairo(
                               fontSize: 11,
                               color: widget.textSecondary,
@@ -2097,7 +2184,11 @@ class _PlayerSeekBarSectionState extends State<_PlayerSeekBarSection> {
           if (prev.runtimeType != curr.runtimeType) return true;
           if (prev is AudioPlayerReady && curr is AudioPlayerReady) {
             return prev.position != curr.position ||
-                prev.duration != curr.duration;
+                prev.duration != curr.duration ||
+                prev.recitation.id != curr.recitation.id;
+          }
+          if (prev is AudioPlayerLoading && curr is AudioPlayerLoading) {
+            return prev.recitation.id != curr.recitation.id;
           }
           return false;
         },
@@ -2109,9 +2200,10 @@ class _PlayerSeekBarSectionState extends State<_PlayerSeekBarSection> {
           final duration = isReady ? state.duration : Duration.zero;
           final position = isReady ? state.position : Duration.zero;
 
-          final isLive = state is AudioPlayerReady &&
-              (state.recitation.collectionId == 'radio' ||
-                  duration.inMilliseconds == 0);
+          final activeRecitation =
+              state.currentRecitation ?? widget.cubit.currentRecitation;
+          final isLive = (activeRecitation?.isRadio ?? false) ||
+              (isReady && duration.inMilliseconds == 0);
           final double rawProgress = duration.inMilliseconds > 0
               ? (position.inMilliseconds / duration.inMilliseconds)
                   .clamp(0.0, 1.0)
@@ -2125,9 +2217,10 @@ class _PlayerSeekBarSectionState extends State<_PlayerSeekBarSection> {
               SliderTheme(
                 data: SliderTheme.of(context).copyWith(
                   trackHeight: 3.0,
-                  thumbShape: const RoundSliderThumbShape(
-                    enabledThumbRadius: 5.0,
-                    pressedElevation: 3.0,
+                  thumbShape: RoundSliderThumbShape(
+                    enabledThumbRadius: isLive ? 0.0 : 5.0,
+                    disabledThumbRadius: isLive ? 0.0 : 4.0,
+                    pressedElevation: isLive ? 0.0 : 3.0,
                   ),
                   overlayShape:
                       const RoundSliderOverlayShape(overlayRadius: 12.0),

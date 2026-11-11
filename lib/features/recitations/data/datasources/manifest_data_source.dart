@@ -34,7 +34,7 @@ class ManifestDataSource {
       rawJson = await rootBundle.loadString(AppConstants.nahawandAssetPath);
     } catch (e) {
       throw CacheException(
-        'تعذّر تحميل ملف روائع النهاوند: ${AppConstants.nahawandAssetPath}\n$e',
+        'تعذّر تحميل ملف المحافل والتلاوات النادرة: ${AppConstants.nahawandAssetPath}\n$e',
       );
     }
 
@@ -47,9 +47,11 @@ class ManifestDataSource {
       _cachedNahawandModels = List.unmodifiable(models);
       return _cachedNahawandModels!;
     } on FormatException catch (e) {
-      throw ParseException('خطأ في تنسيق ملف روائع النهاوند: ${e.message}');
+      throw ParseException(
+        'خطأ في تنسيق ملف المحافل والتلاوات النادرة: ${e.message}',
+      );
     } catch (e) {
-      throw ParseException('خطأ غير متوقع أثناء قراءة بيانات النهاوند: $e');
+      throw ParseException('خطأ غير متوقع أثناء قراءة بيانات المحافل: $e');
     }
   }
 

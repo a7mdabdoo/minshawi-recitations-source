@@ -3,7 +3,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/theme_cubit.dart';
+import '../../../features/player/presentation/cubit/audio_player_cubit.dart';
+import '../../../features/player/presentation/cubit/audio_player_state.dart';
 
 class DesktopNavigationRail extends StatelessWidget {
   final String currentPath;
@@ -81,17 +84,35 @@ class DesktopNavigationRail extends StatelessWidget {
                 ),
                 _RailIconItem(
                   icon: Icons.star_rounded,
-                  tooltip: 'التلاوات النادرة',
+                  tooltip: AppConstants.rare1387Title,
                   route: '/recitations/rare_1387',
                   currentPath: currentPath,
                   onTap: () => _safeNavigate(context, '/recitations/rare_1387'),
                 ),
                 _RailIconItem(
                   icon: Icons.queue_music_rounded,
-                  tooltip: 'روائع النهاوند',
+                  tooltip: AppConstants.mahafilTitle,
                   route: '/recitations/nahawand',
                   currentPath: currentPath,
                   onTap: () => _safeNavigate(context, '/recitations/nahawand'),
+                ),
+                BlocBuilder<AudioPlayerCubit, AudioPlayerState>(
+                  builder: (context, playerState) {
+                    final isRadioPlaying = playerState is AudioPlayerReady &&
+                        playerState.recitation.isRadio &&
+                        playerState.isPlaying;
+                    return _RailRadioItem(
+                      isPlaying: isRadioPlaying,
+                      onTap: () {
+                        final cubit = context.read<AudioPlayerCubit>();
+                        if (isRadioPlaying) {
+                          cubit.pause();
+                        } else {
+                          cubit.play(AppConstants.minshawiRadio);
+                        }
+                      },
+                    );
+                  },
                 ),
                 _RailIconItem(
                   icon: Icons.download_done_rounded,
@@ -207,6 +228,78 @@ class _RailIconItemState extends State<_RailIconItem> {
               widget.icon,
               size: 22,
               color: isActive
+                  ? gold
+                  : (_isHovered
+                      ? (isDark ? Colors.white : Colors.black)
+                      : textSecondary),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RailRadioItem extends StatefulWidget {
+  final bool isPlaying;
+  final VoidCallback onTap;
+
+  const _RailRadioItem({
+    required this.isPlaying,
+    required this.onTap,
+  });
+
+  @override
+  State<_RailRadioItem> createState() => _RailRadioItemState();
+}
+
+class _RailRadioItemState extends State<_RailRadioItem> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final gold = isDark ? AppColors.goldPrimary : AppColors.goldDark;
+    final textSecondary =
+        isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+
+    final isPlaying = widget.isPlaying;
+
+    return Tooltip(
+      message: isPlaying
+          ? 'إيقاف إذاعة القرآن الكريم'
+          : 'إذاعة القرآن الكريم (بث مباشر)',
+      preferBelow: false,
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _isHovered = true),
+        onExit: (_) => setState(() => _isHovered = false),
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTap: widget.onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 10),
+            height: 48,
+            decoration: BoxDecoration(
+              color: isPlaying
+                  ? gold.withAlpha(isDark ? 42 : 32)
+                  : (_isHovered
+                      ? (isDark
+                          ? Colors.white.withAlpha(12)
+                          : Colors.black.withAlpha(8))
+                      : Colors.transparent),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isPlaying
+                    ? gold.withAlpha(isDark ? 100 : 80)
+                    : Colors.transparent,
+                width: 1.0,
+              ),
+            ),
+            child: Icon(
+              isPlaying ? Icons.radio_rounded : Icons.radio_outlined,
+              size: 22,
+              color: isPlaying
                   ? gold
                   : (_isHovered
                       ? (isDark ? Colors.white : Colors.black)

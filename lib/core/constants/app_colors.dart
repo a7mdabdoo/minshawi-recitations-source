@@ -55,9 +55,4 @@ abstract class AppColors {
     Color(0xFFFFF8F0),
     Color(0xFFF8F4EE),
   ];
-
-  static const Color shimmerBaseDark = Color(0xFF151C26);
-  static const Color shimmerHighlightDark = Color(0xFF222B38);
-  static const Color shimmerBaseLight = Color(0xFFE8D5B7);
-  static const Color shimmerHighlightLight = Color(0xFFF8F4EE);
 }

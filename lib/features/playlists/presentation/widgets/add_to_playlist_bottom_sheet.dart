@@ -20,6 +20,7 @@ class AddToPlaylistBottomSheet extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      constraints: const BoxConstraints(maxWidth: 540),
       builder: (ctx) => AddToPlaylistBottomSheet(recitation: recitation),
     );
   }
@@ -125,14 +126,16 @@ class AddToPlaylistBottomSheet extends StatelessWidget {
                           initialRecitation: recitation,
                         );
                     if (context.mounted) {
+                      final isLarge = MediaQuery.sizeOf(context).width >= 600;
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                            'تم إنشاء قائمة $name وإضافة سورة ${recitation.surahNameAr}',
+                            'تم إنشاء قائمة $name وإضافة ${recitation.cleanSurahTitleWithVerses}',
                             style: GoogleFonts.cairo(color: Colors.white),
                           ),
                           backgroundColor: AppColors.darkCardSurface,
                           behavior: SnackBarBehavior.floating,
+                          width: isLarge ? 420 : null,
                           duration: const Duration(seconds: 2),
                         ),
                       );
@@ -224,7 +227,7 @@ class AddToPlaylistBottomSheet extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          'سورة ${recitation.surahNameAr} ()',
+                          recitation.cleanSurahTitleWithVerses,
                           style: GoogleFonts.amiri(
                             fontSize: 13,
                             color: textSecondary,

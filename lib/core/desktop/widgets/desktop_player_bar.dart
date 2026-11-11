@@ -77,11 +77,17 @@ class _DesktopPlayerBarState extends State<DesktopPlayerBar> {
             (state is AudioPlayerLoading || (ready?.isBuffering ?? false)) &&
                 !isPlaying;
 
-        final isShuffle = ready?.isShuffleEnabled ?? cubit.isShuffleEnabled;
-        final loopMode = ready?.loopMode ?? cubit.loopMode;
-        final abState = ready?.abLoopState ?? cubit.abLoopState;
+        final isRadio = recitation?.isRadio ?? false;
+        final hasTrackControls = recitation != null && !isRadio;
+        final isShuffle =
+            !isRadio && (ready?.isShuffleEnabled ?? cubit.isShuffleEnabled);
+        final loopMode =
+            isRadio ? LoopMode.off : (ready?.loopMode ?? cubit.loopMode);
+        final abState = isRadio
+            ? AbLoopState.off
+            : (ready?.abLoopState ?? cubit.abLoopState);
         final isAbActive = abState != AbLoopState.off;
-        final speed = ready?.speed ?? cubit.speed;
+        final speed = isRadio ? 1.0 : (ready?.speed ?? cubit.speed);
 
         return Container(
           height: 94,
@@ -122,43 +128,51 @@ class _DesktopPlayerBarState extends State<DesktopPlayerBar> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         IconButton(
-                          tooltip: isShuffle
-                              ? 'إلغاء التشغيل العشوائي'
-                              : 'تشغيل عشوائي للسور',
+                          tooltip: isRadio
+                              ? 'غير متاح في البث المباشر'
+                              : (isShuffle
+                                  ? 'إلغاء التشغيل العشوائي'
+                                  : 'تشغيل عشوائي للسور'),
                           icon: Icon(
                             Icons.shuffle_rounded,
                             size: 19,
-                            color: isShuffle ? gold : textSecondary,
+                            color: hasTrackControls
+                                ? (isShuffle ? gold : textSecondary)
+                                : textSecondary.withAlpha(90),
                           ),
-                          onPressed: recitation != null
+                          onPressed: hasTrackControls
                               ? () => cubit.toggleShuffle()
                               : null,
                         ),
                         IconButton(
-                          tooltip: 'التلاوة السابقة',
+                          tooltip: isRadio
+                              ? 'غير متاح في البث المباشر'
+                              : 'التلاوة السابقة',
                           icon: Icon(
                             Icons.skip_previous_rounded,
                             size: 24,
-                            color: recitation != null
+                            color: hasTrackControls
                                 ? textPrimary
-                                : textSecondary.withAlpha(100),
+                                : textSecondary.withAlpha(90),
                           ),
-                          onPressed: recitation != null
+                          onPressed: hasTrackControls
                               ? () {
                                   if (_canPerformAction(250)) cubit.playPrevious();
                                 }
                               : null,
                         ),
                         IconButton(
-                          tooltip: 'تأخير ١٠ ثوانٍ',
+                          tooltip: isRadio
+                              ? 'غير متاح في البث المباشر'
+                              : 'تأخير ١٠ ثوانٍ',
                           icon: Icon(
                             Icons.replay_10_rounded,
                             size: 21,
-                            color: recitation != null
+                            color: hasTrackControls
                                 ? textPrimary
-                                : textSecondary.withAlpha(100),
+                                : textSecondary.withAlpha(90),
                           ),
-                          onPressed: recitation != null
+                          onPressed: hasTrackControls
                               ? () {
                                   if (_canPerformAction(150)) cubit.skipBackward();
                                 }
@@ -220,64 +234,76 @@ class _DesktopPlayerBarState extends State<DesktopPlayerBar> {
                         ),
                         const SizedBox(width: 4),
                         IconButton(
-                          tooltip: 'تقديم ١٠ ثوانٍ',
+                          tooltip: isRadio
+                              ? 'غير متاح في البث المباشر'
+                              : 'تقديم ١٠ ثوانٍ',
                           icon: Icon(
                             Icons.forward_10_rounded,
                             size: 21,
-                            color: recitation != null
+                            color: hasTrackControls
                                 ? textPrimary
-                                : textSecondary.withAlpha(100),
+                                : textSecondary.withAlpha(90),
                           ),
-                          onPressed: recitation != null
+                          onPressed: hasTrackControls
                               ? () {
                                   if (_canPerformAction(150)) cubit.skipForward();
                                 }
                               : null,
                         ),
                         IconButton(
-                          tooltip: 'التلاوة التالية',
+                          tooltip: isRadio
+                              ? 'غير متاح في البث المباشر'
+                              : 'التلاوة التالية',
                           icon: Icon(
                             Icons.skip_next_rounded,
                             size: 24,
-                            color: recitation != null
+                            color: hasTrackControls
                                 ? textPrimary
-                                : textSecondary.withAlpha(100),
+                                : textSecondary.withAlpha(90),
                           ),
-                          onPressed: recitation != null
+                          onPressed: hasTrackControls
                               ? () {
                                   if (_canPerformAction(250)) cubit.playNext();
                                 }
                               : null,
                         ),
                         IconButton(
-                          tooltip: loopMode == LoopMode.one
-                              ? 'تكرار التلاوة الحالية'
-                              : (loopMode == LoopMode.all
-                                  ? 'تكرار القائمة بالكامل'
-                                  : 'التكرار متوقف'),
+                          tooltip: isRadio
+                              ? 'غير متاح في البث المباشر'
+                              : (loopMode == LoopMode.one
+                                  ? 'تكرار التلاوة الحالية'
+                                  : (loopMode == LoopMode.all
+                                      ? 'تكرار القائمة بالكامل'
+                                      : 'التكرار متوقف')),
                           icon: Icon(
                             loopMode == LoopMode.one
                                 ? Icons.repeat_one_rounded
                                 : Icons.repeat_rounded,
                             size: 20,
-                            color: loopMode != LoopMode.off
-                                ? gold
-                                : textSecondary,
+                            color: hasTrackControls
+                                ? (loopMode != LoopMode.off
+                                    ? gold
+                                    : textSecondary)
+                                : textSecondary.withAlpha(90),
                           ),
-                          onPressed: recitation != null
+                          onPressed: hasTrackControls
                               ? () => cubit.toggleLoopMode()
                               : null,
                         ),
                         IconButton(
-                          tooltip: isAbActive
-                              ? 'إلغاء تكرار A-B'
-                              : 'تكرار مقطع للحفظ (A-B)',
+                          tooltip: isRadio
+                              ? 'غير متاح في البث المباشر'
+                              : (isAbActive
+                                  ? 'إلغاء تكرار A-B'
+                                  : 'تكرار مقطع للحفظ (A-B)'),
                           icon: Icon(
                             Icons.repeat_on_rounded,
                             size: 19,
-                            color: isAbActive ? gold : textSecondary,
+                            color: hasTrackControls
+                                ? (isAbActive ? gold : textSecondary)
+                                : textSecondary.withAlpha(90),
                           ),
-                          onPressed: recitation != null
+                          onPressed: hasTrackControls
                               ? () => cubit.cycleAbRepeat()
                               : null,
                         ),
@@ -301,7 +327,8 @@ class _DesktopPlayerBarState extends State<DesktopPlayerBar> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     PopupMenuButton<double>(
-                      tooltip: 'سرعة التلاوة',
+                      enabled: hasTrackControls,
+                      tooltip: isRadio ? 'غير متاح في البث المباشر' : 'سرعة التلاوة',
                       initialValue: speed,
                       offset: const Offset(0, -140),
                       color: isDark ? AppColors.darkCardSurface : Colors.white,
@@ -312,7 +339,9 @@ class _DesktopPlayerBarState extends State<DesktopPlayerBar> {
                           width: 1.0,
                         ),
                       ),
-                      onSelected: (val) => cubit.setSpeed(val),
+                      onSelected: hasTrackControls
+                          ? (val) => cubit.setSpeed(val)
+                          : null,
                       itemBuilder: (ctx) => [
                         for (final s in [0.75, 1.0, 1.25, 1.5])
                           PopupMenuItem<double>(
@@ -345,7 +374,9 @@ class _DesktopPlayerBarState extends State<DesktopPlayerBar> {
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: border,
+                            color: hasTrackControls
+                                ? border
+                                : border.withAlpha(110),
                             width: 1.0,
                           ),
                         ),
@@ -354,7 +385,9 @@ class _DesktopPlayerBarState extends State<DesktopPlayerBar> {
                           style: GoogleFonts.cairo(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
-                            color: gold,
+                            color: hasTrackControls
+                                ? gold
+                                : textSecondary.withAlpha(90),
                           ),
                         ),
                       ),
@@ -371,7 +404,7 @@ class _DesktopPlayerBarState extends State<DesktopPlayerBar> {
                       onPressed: () => showSleepTimerBottomSheet(context),
                     ),
 
-                    if (recitation != null)
+                    if (recitation != null && !recitation.isRadio)
                       BlocBuilder<DownloadCubit, DownloadState>(
                         builder: (context, downloadState) {
                           final isDownloading =
@@ -619,7 +652,8 @@ class _DesktopPlayerBarState extends State<DesktopPlayerBar> {
             ],
           ),
         ),
-        BlocBuilder<FavoritesCubit, FavoritesState>(
+        if (!recitation.isRadio)
+          BlocBuilder<FavoritesCubit, FavoritesState>(
           builder: (context, favState) {
             final isFav = favState is FavoritesLoaded &&
                 favState.isFavorite(recitation.id);
@@ -681,19 +715,27 @@ class _DesktopPlayerProgressBarState extends State<_DesktopPlayerProgressBar> {
         final ready = state is AudioPlayerReady ? state : null;
         final position = ready?.position ?? Duration.zero;
         final duration = ready?.duration ?? Duration.zero;
+        final isLive = (ready?.recitation.isRadio ??
+                widget.recitation?.isRadio ??
+                false) ||
+            (ready != null && duration.inMilliseconds == 0);
         final maxDurationMs = duration.inMilliseconds.toDouble();
-        final currentPositionMs = _isDraggingSeek
-            ? _dragValue
-            : position.inMilliseconds
-                .toDouble()
-                .clamp(0.0, maxDurationMs > 0 ? maxDurationMs : 1.0);
+        final currentPositionMs = isLive
+            ? 1.0
+            : (_isDraggingSeek
+                ? _dragValue
+                : position.inMilliseconds
+                    .toDouble()
+                    .clamp(0.0, maxDurationMs > 0 ? maxDurationMs : 1.0));
 
         return Row(
           children: [
             Text(
-              Formatters.formatDurationObj(
-                Duration(milliseconds: currentPositionMs.round()),
-              ),
+              isLive
+                  ? Formatters.formatDurationObj(position)
+                  : Formatters.formatDurationObj(
+                      Duration(milliseconds: currentPositionMs.round()),
+                    ),
               style: GoogleFonts.cairo(
                 fontSize: 11,
                 fontWeight: FontWeight.w500,
@@ -711,44 +753,53 @@ class _DesktopPlayerProgressBarState extends State<_DesktopPlayerProgressBar> {
                       : const Color(0xFFE2E8F0),
                   thumbColor: widget.gold,
                   overlayColor: widget.gold.withAlpha(40),
-                  thumbShape: const RoundSliderThumbShape(
-                    enabledThumbRadius: 5.5,
-                  ),
+                  thumbShape: isLive
+                      ? const RoundSliderThumbShape(
+                          enabledThumbRadius: 0.0,
+                          disabledThumbRadius: 0.0,
+                        )
+                      : const RoundSliderThumbShape(
+                          enabledThumbRadius: 5.5,
+                        ),
                   overlayShape: const RoundSliderOverlayShape(
                     overlayRadius: 12,
                   ),
                 ),
                 child: Slider(
                   value: currentPositionMs,
-                  max: maxDurationMs > 0 ? maxDurationMs : 1.0,
-                  onChanged: widget.recitation != null && maxDurationMs > 0
-                      ? (val) {
-                          setState(() {
-                            _isDraggingSeek = true;
-                            _dragValue = val;
-                          });
-                        }
-                      : null,
-                  onChangeEnd: widget.recitation != null && maxDurationMs > 0
-                      ? (val) {
-                          widget.cubit.seekTo(
-                            Duration(milliseconds: val.round()),
-                          );
-                          setState(() {
-                            _isDraggingSeek = false;
-                          });
-                        }
-                      : null,
+                  max: isLive ? 1.0 : (maxDurationMs > 0 ? maxDurationMs : 1.0),
+                  onChanged:
+                      widget.recitation != null && !isLive && maxDurationMs > 0
+                          ? (val) {
+                              setState(() {
+                                _isDraggingSeek = true;
+                                _dragValue = val;
+                              });
+                            }
+                          : null,
+                  onChangeEnd:
+                      widget.recitation != null && !isLive && maxDurationMs > 0
+                          ? (val) {
+                              widget.cubit.seekTo(
+                                Duration(milliseconds: val.round()),
+                              );
+                              setState(() {
+                                _isDraggingSeek = false;
+                              });
+                            }
+                          : null,
                 ),
               ),
             ),
             const SizedBox(width: 8),
             Text(
-              Formatters.formatDurationObj(duration),
+              isLive
+                  ? 'بث مباشر'
+                  : Formatters.formatDurationObj(duration),
               style: GoogleFonts.cairo(
                 fontSize: 11,
-                fontWeight: FontWeight.w500,
-                color: widget.textSecondary,
+                fontWeight: isLive ? FontWeight.w700 : FontWeight.w500,
+                color: isLive ? widget.gold : widget.textSecondary,
               ),
             ),
           ],

@@ -266,8 +266,9 @@ class _PlaylistsContentViewState extends State<PlaylistsContentView> {
     Color textPrimary,
     Color textSecondary,
   ) {
+    final isLarge = MediaQuery.sizeOf(context).width >= 600;
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+      margin: EdgeInsets.fromLTRB(isLarge ? 20 : 16, 6, isLarge ? 20 : 16, 10),
       decoration: BoxDecoration(
         color: cardBg,
         borderRadius: BorderRadius.circular(14),
@@ -326,6 +327,7 @@ class _PlaylistsContentViewState extends State<PlaylistsContentView> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isLarge = MediaQuery.sizeOf(context).width >= 600;
     final gold = isDark ? AppColors.goldPrimary : AppColors.goldDark;
     final cardBg =
         isDark ? AppColors.darkCardSurface : AppColors.lightCardSurface;
@@ -411,17 +413,33 @@ class _PlaylistsContentViewState extends State<PlaylistsContentView> {
                         .toList();
 
                 final matchesRecitation = playlistRecs.any((r) {
-                  final arName = r.surahNameAr.toLowerCase();
-                  final arNorm = ArabicNormalizer.normalize(arName);
-                  final enName = r.surahNameEn.toLowerCase();
-
-                  return arName.contains(cleanQuery) ||
-                      arNorm.contains(cleanQueryNorm) ||
-                      enName.contains(cleanQuery);
+                  return ArabicNormalizer.matchesMultiToken(
+                    query: cleanQuery,
+                    sources: [
+                      r.surahNameAr,
+                      r.cleanSurahTitleWithVerses,
+                      r.cleanLocationOrDetail,
+                      r.surahNameEn,
+                      r.recordingYear,
+                      if (r.isMahfel) r.verseRange,
+                      r.sourceLabel,
+                      r.surahNumber.toString(),
+                    ],
+                  );
                 });
 
                 return matchesRecitation;
               }).toList();
+
+              Widget wrapDesktop(Widget child) {
+                if (!isLarge || widget.shrinkWrap) return child;
+                return Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 960),
+                    child: child,
+                  ),
+                );
+              }
 
               if (filteredPlaylists.isEmpty) {
                 final noResultsWidget = _NoSearchResultsView(
@@ -436,31 +454,39 @@ class _PlaylistsContentViewState extends State<PlaylistsContentView> {
                   },
                 );
 
-                return Column(
-                  mainAxisSize:
-                      widget.shrinkWrap ? MainAxisSize.min : MainAxisSize.max,
-                  children: [
-                    if (widget.showSearch)
-                      _buildSearchBar(
-                        isDark,
-                        gold,
-                        cardBg,
-                        textPrimary,
-                        textSecondary,
-                      ),
-                    if (widget.shrinkWrap)
-                      noResultsWidget
-                    else
-                      Expanded(child: noResultsWidget),
-                  ],
+                return wrapDesktop(
+                  Column(
+                    mainAxisSize: widget.shrinkWrap
+                        ? MainAxisSize.min
+                        : MainAxisSize.max,
+                    children: [
+                      if (widget.showSearch)
+                        _buildSearchBar(
+                          isDark,
+                          gold,
+                          cardBg,
+                          textPrimary,
+                          textSecondary,
+                        ),
+                      if (widget.shrinkWrap)
+                        noResultsWidget
+                      else
+                        Expanded(child: noResultsWidget),
+                    ],
+                  ),
                 );
               }
 
               final listView = ListView.separated(
                 physics: widget.physics,
                 shrinkWrap: widget.shrinkWrap,
-                padding:
-                    widget.padding ?? const EdgeInsets.fromLTRB(16, 8, 16, 96),
+                padding: widget.padding ??
+                    EdgeInsets.fromLTRB(
+                      isLarge ? 20 : 16,
+                      isLarge ? 10 : 8,
+                      isLarge ? 20 : 16,
+                      isLarge ? 24 : 96,
+                    ),
                 addAutomaticKeepAlives: false,
                 addRepaintBoundaries: true,
                 itemCount: filteredPlaylists.length + 1,
@@ -546,6 +572,7 @@ class _PlaylistsContentViewState extends State<PlaylistsContentView> {
                                 'قائمة التشغيل فارغة! أضف تلاوات أولاً.',
                                 style: GoogleFonts.cairo(color: Colors.white),
                               ),
+                              width: isLarge ? 420 : null,
                               duration: const Duration(seconds: 2),
                               behavior: SnackBarBehavior.floating,
                             ),
@@ -563,25 +590,27 @@ class _PlaylistsContentViewState extends State<PlaylistsContentView> {
               );
 
               if (!widget.showSearch) {
-                return listView;
+                return wrapDesktop(listView);
               }
 
-              return Column(
-                mainAxisSize:
-                    widget.shrinkWrap ? MainAxisSize.min : MainAxisSize.max,
-                children: [
-                  _buildSearchBar(
-                    isDark,
-                    gold,
-                    cardBg,
-                    textPrimary,
-                    textSecondary,
-                  ),
-                  if (widget.shrinkWrap)
-                    listView
-                  else
-                    Expanded(child: listView),
-                ],
+              return wrapDesktop(
+                Column(
+                  mainAxisSize:
+                      widget.shrinkWrap ? MainAxisSize.min : MainAxisSize.max,
+                  children: [
+                    _buildSearchBar(
+                      isDark,
+                      gold,
+                      cardBg,
+                      textPrimary,
+                      textSecondary,
+                    ),
+                    if (widget.shrinkWrap)
+                      listView
+                    else
+                      Expanded(child: listView),
+                  ],
+                ),
               );
             },
           );

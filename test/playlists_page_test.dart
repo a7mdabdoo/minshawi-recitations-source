@@ -107,8 +107,16 @@ void main() {
       quality: 'HQ',
     );
 
-    await playlistsCubit.createPlaylist('تلاوات خاشعة', initialRecitation: recitation1);
-    await playlistsCubit.createPlaylist('المصحف المرتل', initialRecitation: recitation2);
+    await tester.runAsync(() async {
+      await playlistsCubit.createPlaylist(
+        'تلاوات خاشعة',
+        initialRecitation: recitation1,
+      );
+      await playlistsCubit.createPlaylist(
+        'المصحف المرتل',
+        initialRecitation: recitation2,
+      );
+    });
 
     await tester.pumpWidget(buildTestWidget());
     await tester.pumpAndSettle();

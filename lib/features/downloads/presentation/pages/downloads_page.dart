@@ -70,9 +70,9 @@ class _DownloadsPageState extends State<DownloadsPage> {
       case 'mojawad':
         return 'المصحف المجود';
       case 'rare_1387':
-        return 'التلاوات النادرة';
+        return 'المصحف المرتل - 1387 هـ';
       case 'nahawand':
-        return 'روائع النهاوند';
+        return 'المحافل والتلاوات النادرة';
       default:
         return 'جميع الأقسام';
     }
@@ -237,107 +237,124 @@ class _DownloadsPageState extends State<DownloadsPage> {
             );
           }
 
-          return Column(
-            children: [
-              _DownloadsHeader(
-                allCount: allCount,
-                filteredCount: filteredRecitations.length,
-                totalSizeMb: state.totalSizeMb,
-                selectedCollectionId: state.selectedCollectionId,
-                isDark: isDark,
-                gold: gold,
-                cardBg: cardBg,
-                textPrimary: textPrimary,
-                textSecondary: textSecondary,
-                onCollectionSelected: (colId) => context
-                    .read<DownloadedRecitationsCubit>()
-                    .filterByCollection(colId),
-              ),
-              const SizedBox(height: 6),
-              Expanded(
-                child: filteredRecitations.isEmpty
-                    ? Center(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 32),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.filter_alt_off_rounded,
-                                size: 44,
-                                color: textSecondary.withAlpha(140),
-                              ),
-                              const SizedBox(height: 12),
-                              Text(
-                                state.searchQuery.isNotEmpty
-                                    ? 'لا توجد نتائج مطابقة لبحثك'
-                                    : 'لا توجد تلاوات محمّلة في هذا القسم',
-                                style: GoogleFonts.cairo(
-                                  fontSize: 14.5,
-                                  fontWeight: FontWeight.w700,
-                                  color: textPrimary,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 8),
-                              TextButton(
-                                onPressed: () {
-                                  _searchController.clear();
-                                  context
-                                      .read<DownloadedRecitationsCubit>()
-                                      .filterByCollection('all');
-                                },
-                                child: Text(
-                                  'عرض جميع التلاوات المحمّلة',
-                                  style: GoogleFonts.cairo(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w700,
-                                    color: gold,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      )
-                    : ListView.separated(
-                        padding: const EdgeInsets.fromLTRB(16, 6, 16, 96),
-                        addAutomaticKeepAlives: false,
-                        addRepaintBoundaries: true,
-                        itemCount: filteredRecitations.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 10),
-                        itemBuilder: (context, index) {
-                          final recitation = filteredRecitations[index];
-                          final filePath = recitation.localFilePath ?? '';
-                          final sizeMb = _getFileSizeMb(
-                              filePath, recitation.fileSizeBytes);
+          final isLarge = MediaQuery.sizeOf(context).width >= 600;
 
-                          return _DownloadedRecitationCard(
-                            recitation: recitation,
-                            sizeMb: sizeMb,
-                            isDark: isDark,
-                            gold: gold,
-                            cardBg: cardBg,
-                            textPrimary: textPrimary,
-                            textSecondary: textSecondary,
-                            onDelete: () => _confirmDelete(
-                              context,
-                              recitation,
-                              sizeMb > 0
-                                  ? sizeMb
-                                  : (recitation.fileSizeBytes / (1024 * 1024)),
-                            ),
-                            onPlay: () {
-                              context.read<AudioPlayerCubit>().play(
-                                    recitation,
-                                    playlist: filteredRecitations,
-                                  );
-                            },
-                          );
-                        },
-                      ),
+          return Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: isLarge ? 960 : double.infinity,
               ),
-            ],
+              child: Column(
+                children: [
+                  _DownloadsHeader(
+                    allCount: allCount,
+                    filteredCount: filteredRecitations.length,
+                    totalSizeMb: state.totalSizeMb,
+                    selectedCollectionId: state.selectedCollectionId,
+                    isDark: isDark,
+                    gold: gold,
+                    cardBg: cardBg,
+                    textPrimary: textPrimary,
+                    textSecondary: textSecondary,
+                    onCollectionSelected: (colId) => context
+                        .read<DownloadedRecitationsCubit>()
+                        .filterByCollection(colId),
+                  ),
+                  const SizedBox(height: 6),
+                  Expanded(
+                    child: filteredRecitations.isEmpty
+                        ? Center(
+                            child: Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 32),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.filter_alt_off_rounded,
+                                    size: 44,
+                                    color: textSecondary.withAlpha(140),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    state.searchQuery.isNotEmpty
+                                        ? 'لا توجد نتائج مطابقة لبحثك'
+                                        : 'لا توجد تلاوات محمّلة في هذا القسم',
+                                    style: GoogleFonts.cairo(
+                                      fontSize: 14.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: textPrimary,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  TextButton(
+                                    onPressed: () {
+                                      _searchController.clear();
+                                      context
+                                          .read<DownloadedRecitationsCubit>()
+                                          .filterByCollection('all');
+                                    },
+                                    child: Text(
+                                      'عرض جميع التلاوات المحمّلة',
+                                      style: GoogleFonts.cairo(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w700,
+                                        color: gold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
+                        : ListView.separated(
+                            padding: EdgeInsets.fromLTRB(
+                              isLarge ? 20 : 16,
+                              6,
+                              isLarge ? 20 : 16,
+                              isLarge ? 24 : 96,
+                            ),
+                            addAutomaticKeepAlives: false,
+                            addRepaintBoundaries: true,
+                            itemCount: filteredRecitations.length,
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(height: 10),
+                            itemBuilder: (context, index) {
+                              final recitation = filteredRecitations[index];
+                              final filePath = recitation.localFilePath ?? '';
+                              final sizeMb = _getFileSizeMb(
+                                  filePath, recitation.fileSizeBytes);
+
+                              return _DownloadedRecitationCard(
+                                recitation: recitation,
+                                sizeMb: sizeMb,
+                                isDark: isDark,
+                                gold: gold,
+                                cardBg: cardBg,
+                                textPrimary: textPrimary,
+                                textSecondary: textSecondary,
+                                onDelete: () => _confirmDelete(
+                                  context,
+                                  recitation,
+                                  sizeMb > 0
+                                      ? sizeMb
+                                      : (recitation.fileSizeBytes /
+                                          (1024 * 1024)),
+                                ),
+                                onPlay: () {
+                                  context.read<AudioPlayerCubit>().play(
+                                        recitation,
+                                        playlist: filteredRecitations,
+                                      );
+                                },
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            ),
           );
         },
       ),
@@ -350,6 +367,7 @@ class _DownloadsPageState extends State<DownloadsPage> {
     double sizeMb,
   ) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isLarge = MediaQuery.sizeOf(context).width >= 600;
     showDialog<void>(
       context: context,
       builder: (dialogCtx) {
@@ -360,14 +378,14 @@ class _DownloadsPageState extends State<DownloadsPage> {
             borderRadius: BorderRadius.circular(18),
           ),
           title: Text(
-            'حذف التلاوة من الهاتف؟',
+            'حذف التلاوة المحمّلة؟',
             style: GoogleFonts.cairo(
               fontSize: 16,
               fontWeight: FontWeight.w700,
             ),
           ),
           content: Text(
-            'هل ترغب في حذف ${recitation.surahNameAr} (${sizeMb.toStringAsFixed(1)} ميجابايت) لتحرير مساحة التخزين؟',
+            'هل ترغب في حذف ${recitation.cleanSurahTitleWithVerses} (${sizeMb.toStringAsFixed(1)} ميجابايت) لتحرير مساحة التخزين؟',
             style: GoogleFonts.cairo(
               fontSize: 13,
               height: 1.4,
@@ -408,9 +426,10 @@ class _DownloadsPageState extends State<DownloadsPage> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                        'تم حذف ${recitation.surahNameAr} وتحرير ${sizeMb.toStringAsFixed(1)} ميجابايت',
+                        'تم حذف ${recitation.cleanSurahTitleWithVerses} وتحرير ${sizeMb.toStringAsFixed(1)} ميجابايت',
                         style: GoogleFonts.cairo(color: Colors.white),
                       ),
+                      width: isLarge ? 420 : null,
                       duration: const Duration(seconds: 2),
                       behavior: SnackBarBehavior.floating,
                     ),
@@ -456,8 +475,9 @@ class _DownloadsHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLarge = MediaQuery.sizeOf(context).width >= 600;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+      padding: EdgeInsets.fromLTRB(isLarge ? 20 : 16, 4, isLarge ? 20 : 16, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -527,13 +547,13 @@ class _DownloadsHeader extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 _buildFilterChip(
-                  label: 'التلاوات النادرة',
+                  label: 'المصحف المرتل - 1387 هـ',
                   collectionId: 'rare_1387',
                   isSelected: selectedCollectionId == 'rare_1387',
                 ),
                 const SizedBox(width: 8),
                 _buildFilterChip(
-                  label: 'روائع النهاوند',
+                  label: 'المحافل والتلاوات النادرة',
                   collectionId: 'nahawand',
                   isSelected: selectedCollectionId == 'nahawand',
                 ),

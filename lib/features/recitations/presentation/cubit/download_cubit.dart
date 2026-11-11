@@ -6,23 +6,19 @@ import '../../../../core/errors/exceptions.dart';
 import '../../../../core/services/download_service.dart';
 import '../../domain/entities/recitation.dart';
 import 'download_state.dart';
-import 'nahawand_cubit.dart';
 import 'recitation_list_cubit.dart';
 
 class DownloadCubit extends Cubit<DownloadState> {
   final DownloadService _downloadService;
   final RecitationListCubit _recitationListCubit;
-  final NahawandCubit? _nahawandCubit;
   final Map<String, CancelToken> _cancelTokens = {};
   final Set<String> _pausedRecitations = {};
 
   DownloadCubit({
     required DownloadService downloadService,
     required RecitationListCubit recitationListCubit,
-    NahawandCubit? nahawandCubit,
   })  : _downloadService = downloadService,
         _recitationListCubit = recitationListCubit,
-        _nahawandCubit = nahawandCubit,
         super(const DownloadState());
 
   Future<void> startDownload(Recitation recitation) async {
@@ -36,7 +32,6 @@ class DownloadCubit extends Cubit<DownloadState> {
           recitationId: recitation.id,
           localFilePath: existingPath,
         );
-        _nahawandCubit?.markAsDownloaded(recitation.id, existingPath);
         return;
       }
     }
@@ -96,7 +91,6 @@ class DownloadCubit extends Cubit<DownloadState> {
             recitationId: recitation.id,
             localFilePath: localPath,
           );
-          _nahawandCubit?.markAsDownloaded(recitation.id, localPath);
         }
       }
     } on DownloadPausedException {
@@ -143,7 +137,7 @@ class DownloadCubit extends Cubit<DownloadState> {
           progressMap: pMap,
           lastError: isStorageFull
               ? 'مساحة التخزين غير كافية على الهاتف'
-              : 'تعذّر تنزيل سورة ${recitation.surahNameAr}. يرجى التحقق من اتصال الإنترنت',
+              : 'تعذّر تنزيل ${recitation.cleanSurahTitleWithVerses}. يرجى التحقق من اتصال الإنترنت',
           errorRecitationId: recitation.id,
         ));
       }
@@ -218,7 +212,6 @@ class DownloadCubit extends Cubit<DownloadState> {
       await _downloadService.deleteDownload(recitation.id);
       if (!isClosed) {
         await _recitationListCubit.markRemoved(recitation.id);
-        _nahawandCubit?.markAsDeleted(recitation.id);
       }
     } catch (e) {
       if (!isClosed) {

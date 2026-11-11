@@ -7,18 +7,10 @@ class ArabicNormalizer {
   static final RegExp _alefMaksuraRegex = RegExp(r'[ى]');
   static final RegExp _taaMarbutaRegex = RegExp(r'[ة]');
 
-  static const Map<String, String> _arabicDigitsMap = {
-    '٠': '0',
-    '١': '1',
-    '٢': '2',
-    '٣': '3',
-    '٤': '4',
-    '٥': '5',
-    '٦': '6',
-    '٧': '7',
-    '٨': '8',
-    '٩': '9',
-  };
+  static final RegExp _arabicDigitsRegex = RegExp(r'[٠-٩]');
+  static final RegExp _whitespaceRegex = RegExp(r'\s+');
+  static final Expando<String> _searchCorpusCache =
+      Expando<String>('recitationSearchCorpus');
 
   static String normalize(String text) {
     if (text.isEmpty) return '';
@@ -26,16 +18,13 @@ class ArabicNormalizer {
     var normalized = text;
 
     normalized = normalized.replaceAll(_tashkeelAndTatweelRegex, '');
-
     normalized = normalized.replaceAll(_alefVariantsRegex, 'ا');
-
     normalized = normalized.replaceAll(_taaMarbutaRegex, 'ه');
-
     normalized = normalized.replaceAll(_alefMaksuraRegex, 'ي');
-
-    _arabicDigitsMap.forEach((arabicDigit, asciiDigit) {
-      normalized = normalized.replaceAll(arabicDigit, asciiDigit);
-    });
+    normalized = normalized.replaceAllMapped(
+      _arabicDigitsRegex,
+      (m) => String.fromCharCode(m.group(0)!.codeUnitAt(0) - 0x0660 + 48),
+    );
 
     return normalized.trim().toLowerCase();
   }
@@ -68,26 +57,60 @@ class ArabicNormalizer {
     return false;
   }
 
+  /// Normalizes and splits [query] into search tokens once before filtering.
+  static List<String> tokenizeQuery(String query) {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) return const [];
+    return trimmed
+        .split(_whitespaceRegex)
+        .map(normalize)
+        .where((w) => w.isNotEmpty)
+        .toList();
+  }
+
+  /// Checks whether all [tokens] match the normalized corpus built for [cacheKey].
+  static bool matchesPreparedCached({
+    required List<String> tokens,
+    required Object cacheKey,
+    required Iterable<String> Function() sourcesBuilder,
+  }) {
+    if (tokens.isEmpty) return true;
+
+    var combinedNormSource = _searchCorpusCache[cacheKey];
+    if (combinedNormSource == null) {
+      combinedNormSource =
+          sourcesBuilder().map(normalize).where((s) => s.isNotEmpty).join(' ');
+      _searchCorpusCache[cacheKey] = combinedNormSource;
+    }
+
+    return _matchTokensAgainstCorpus(
+      combinedNormSource: combinedNormSource,
+      tokens: tokens,
+    );
+  }
+
   /// Checks if all keywords in [query] match across the provided [sources].
   /// Every significant word/token in the query must be found in the normalized searchable text.
   static bool matchesMultiToken({
     required String query,
     required Iterable<String> sources,
   }) {
-    final trimmedQuery = query.trim();
-    if (trimmedQuery.isEmpty) return true;
+    final tokens = tokenizeQuery(query);
+    if (tokens.isEmpty) return true;
 
     final combinedNormSource =
-        sources.map((s) => normalize(s)).where((s) => s.isNotEmpty).join(' ');
+        sources.map(normalize).where((s) => s.isNotEmpty).join(' ');
+    return _matchTokensAgainstCorpus(
+      combinedNormSource: combinedNormSource,
+      tokens: tokens,
+    );
+  }
+
+  static bool _matchTokensAgainstCorpus({
+    required String combinedNormSource,
+    required List<String> tokens,
+  }) {
     if (combinedNormSource.isEmpty) return false;
-
-    final rawTokens = trimmedQuery.split(RegExp(r'\s+'));
-    final tokens = rawTokens
-        .map((w) => normalize(w))
-        .where((w) => w.isNotEmpty)
-        .toList();
-
-    if (tokens.isEmpty) return true;
 
     var nonSurahTokenCount = 0;
     for (final token in tokens) {

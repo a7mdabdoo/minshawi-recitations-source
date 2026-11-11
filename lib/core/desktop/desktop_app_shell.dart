@@ -42,23 +42,7 @@ class _DesktopAppShellState extends State<DesktopAppShell> {
             return widget.child;
           }
 
-          if (width <= Responsive.tabletBreakpoint) {
-            return Scaffold(
-              body: Column(
-                children: [
-                  Expanded(
-                    child: Row(
-                      children: [
-                        DesktopNavigationRail(currentPath: widget.currentPath),
-                        Expanded(child: widget.child),
-                      ],
-                    ),
-                  ),
-                  if (!isPlayerPage) const DesktopPlayerBar(),
-                ],
-              ),
-            );
-          }
+          final isTablet = width <= Responsive.tabletBreakpoint;
 
           return Scaffold(
             body: Column(
@@ -66,16 +50,25 @@ class _DesktopAppShellState extends State<DesktopAppShell> {
                 Expanded(
                   child: Row(
                     children: [
-                      DesktopSidebar(
-                        currentPath: widget.currentPath,
-                        isCollapsed: _isSidebarCollapsed,
-                        onToggleCollapse: _toggleSidebar,
+                      if (isTablet)
+                        DesktopNavigationRail(currentPath: widget.currentPath)
+                      else
+                        DesktopSidebar(
+                          currentPath: widget.currentPath,
+                          isCollapsed: _isSidebarCollapsed,
+                          onToggleCollapse: _toggleSidebar,
+                        ),
+                      Expanded(
+                        key: const ValueKey('desktop_shell_content'),
+                        child: widget.child,
                       ),
-                      Expanded(child: widget.child),
                     ],
                   ),
                 ),
-                if (!isPlayerPage) const DesktopPlayerBar(),
+                if (!isPlayerPage)
+                  const DesktopPlayerBar(
+                    key: ValueKey('desktop_shell_player_bar'),
+                  ),
               ],
             ),
           );

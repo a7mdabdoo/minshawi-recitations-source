@@ -9,24 +9,34 @@ abstract class AppConstants {
   static const Recitation minshawiRadio = Recitation(
     id: 'radio_minshawi',
     surahNumber: 0,
-    surahNameAr: 'إذاعة الشيخ المنشاوي',
+    surahNameAr: 'إذاعة القرآن الكريم',
     surahNameEn: 'Al-Minshawi Live Radio',
     verseRange: '',
     durationSeconds: 0,
     fileSizeBytes: 0,
     audioUrl: minshawiRadioUrl,
     recordingYear: 'بث مباشر',
-    recordingLocation: 'إذاعة القرآن الكريم (24/7)',
+    recordingLocation: 'بث مباشر متواصل (24/7)',
     collectionId: 'radio',
     isRare: false,
     quality: 'بث حي',
   );
 
-  static const String appName = 'التلاوات الجديدة';
-  static const String appSubtitle = 'الشيخ محمد صديق المنشاوي';
   static const String sheikhNameAr = 'الشيخ محمد صديق المنشاوي';
   static const String sheikhNameEn = 'Sheikh Mohamed Siddiq Al-Minshawi';
-  static const String collectionTitle = 'التلاوات النادرة';
+  static const String rare1387Title = 'المصحف المرتل - 1387 هـ';
+  static const String rare1387Subtitle =
+      'تسجيلات استوديو الإذاعة المصرية النقية (٢٦ سورة)';
+  static const String mahafilTitle = 'المحافل والتلاوات النادرة';
+  static const String mahafilSubtitle =
+      'نوادر المحافل الخارجية والتسجيلات التاريخية الخالدة';
+  static const String mahafilCountAr = '١٠١٩';
+  static const String mahafilGoldenCountAr = '٦٧';
+
+  static const String releasesRepoUrl =
+      'https://github.com/a7mdabdoo/minshawi-recitations-releases';
+  static const String releasesRawBaseUrl =
+      'https://raw.githubusercontent.com/a7mdabdoo/minshawi-recitations-releases/main';
 
   static const String manifestAssetPath =
       'assets/data/recitations_manifest.json';

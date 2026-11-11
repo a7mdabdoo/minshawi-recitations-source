@@ -98,6 +98,8 @@ class _MiniPlayerContent extends StatelessWidget {
 
     final isLoading = state is AudioPlayerLoading;
     final isError = state is AudioPlayerError;
+    final isRadio = recitation?.isRadio ?? false;
+    final controlsDisabled = isLoading || isError || isRadio;
     final isPlaying =
         state is AudioPlayerReady && (state as AudioPlayerReady).isPlaying;
     final isBuffering =
@@ -201,7 +203,7 @@ class _MiniPlayerContent extends StatelessWidget {
                             mainAxisSize: MainAxisSize.min,
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              if (recitation != null)
+                              if (recitation != null && !recitation.isRadio)
                                 BlocBuilder<FavoritesCubit, FavoritesState>(
                                   builder: (context, favState) {
                                     final isFav =
@@ -260,24 +262,25 @@ class _MiniPlayerContent extends StatelessWidget {
                           _CtrlBtn(
                             icon: Icons.skip_previous_rounded,
                             size: 26,
-                            color: isLoading || isError
+                            color: controlsDisabled
                                 ? textSecondary.withAlpha(70)
                                 : textSecondary,
-                            tooltip: 'السورة السابقة',
-                            onPressed: isLoading || isError
-                                ? null
-                                : cubit.playPrevious,
+                            tooltip:
+                                isRadio ? 'غير متاح في البث المباشر' : 'السورة السابقة',
+                            onPressed:
+                                controlsDisabled ? null : cubit.playPrevious,
                           ),
                           _CtrlBtn(
                             icon: Icons.replay_10_rounded,
                             size: 24,
-                            color: isLoading || isError
+                            color: controlsDisabled
                                 ? textSecondary.withAlpha(70)
                                 : textSecondary,
-                            tooltip: 'تأخير ١٠ ثوانٍ (-10)',
-                            onPressed: isLoading || isError
-                                ? null
-                                : cubit.skipBackward,
+                            tooltip: isRadio
+                                ? 'غير متاح في البث المباشر'
+                                : 'تأخير ١٠ ثوانٍ (-10)',
+                            onPressed:
+                                controlsDisabled ? null : cubit.skipBackward,
                           ),
                           _PlayPauseButton(
                             isLoading: isLoading,
@@ -295,22 +298,24 @@ class _MiniPlayerContent extends StatelessWidget {
                           _CtrlBtn(
                             icon: Icons.forward_10_rounded,
                             size: 24,
-                            color: isLoading || isError
+                            color: controlsDisabled
                                 ? textSecondary.withAlpha(70)
                                 : textSecondary,
-                            tooltip: 'تقديم ١٠ ثوانٍ (+10)',
+                            tooltip: isRadio
+                                ? 'غير متاح في البث المباشر'
+                                : 'تقديم ١٠ ثوانٍ (+10)',
                             onPressed:
-                                isLoading || isError ? null : cubit.skipForward,
+                                controlsDisabled ? null : cubit.skipForward,
                           ),
                           _CtrlBtn(
                             icon: Icons.skip_next_rounded,
                             size: 26,
-                            color: isLoading || isError
+                            color: controlsDisabled
                                 ? textSecondary.withAlpha(70)
                                 : textSecondary,
-                            tooltip: 'السورة التالية',
-                            onPressed:
-                                isLoading || isError ? null : cubit.playNext,
+                            tooltip:
+                                isRadio ? 'غير متاح في البث المباشر' : 'السورة التالية',
+                            onPressed: controlsDisabled ? null : cubit.playNext,
                           ),
                         ],
                       ),
@@ -336,13 +341,19 @@ class _ProgressLine extends StatelessWidget {
       buildWhen: (prev, curr) {
         if (prev.runtimeType != curr.runtimeType) return true;
         if (curr is AudioPlayerReady && prev is AudioPlayerReady) {
-          return prev.progress != curr.progress;
+          return prev.progress != curr.progress ||
+              prev.duration != curr.duration ||
+              prev.recitation.id != curr.recitation.id;
         }
         return false;
       },
       builder: (context, state) {
         final isLoading = state is AudioPlayerLoading;
-        final p = state is AudioPlayerReady ? state.progress : 0.0;
+        final isLive = state is AudioPlayerReady &&
+            (state.recitation.isRadio || state.duration.inMilliseconds == 0);
+        final p = isLive
+            ? 1.0
+            : (state is AudioPlayerReady ? state.progress : 0.0);
         return LinearProgressIndicator(
           value: isLoading ? null : p.clamp(0.0, 1.0),
           minHeight: 2,
@@ -386,7 +397,8 @@ class _SeekBarRowState extends State<_SeekBarRow> {
         if (prev.runtimeType != curr.runtimeType) return true;
         if (curr is AudioPlayerReady && prev is AudioPlayerReady) {
           return prev.progress != curr.progress ||
-              prev.duration != curr.duration;
+              prev.duration != curr.duration ||
+              prev.recitation.id != curr.recitation.id;
         }
         return false;
       },
@@ -398,7 +410,7 @@ class _SeekBarRowState extends State<_SeekBarRow> {
             state is AudioPlayerReady ? state.duration : Duration.zero;
 
         final isLive = state is AudioPlayerReady &&
-            state.recitation.collectionId == 'radio';
+            (state.recitation.isRadio || duration.inMilliseconds == 0);
         final sliderValue =
             isLive ? 1.0 : (_dragging ? _dragValue : progress.clamp(0.0, 1.0));
         final canInteract = !widget.isLoading && !widget.isError && !isLive;
@@ -423,8 +435,8 @@ class _SeekBarRowState extends State<_SeekBarRow> {
                   : SliderTheme(
                       data: SliderTheme.of(context).copyWith(
                         trackHeight: 2.5,
-                        thumbShape: const RoundSliderThumbShape(
-                          enabledThumbRadius: 4.5,
+                        thumbShape: RoundSliderThumbShape(
+                          enabledThumbRadius: isLive ? 0.0 : 4.5,
                           disabledThumbRadius: 0,
                         ),
                         overlayShape:
@@ -475,11 +487,13 @@ class _SeekBarRowState extends State<_SeekBarRow> {
                       ),
                     ),
                     Text(
-                      Formatters.formatDurationObj(duration),
+                      isLive
+                          ? 'بث مباشر'
+                          : Formatters.formatDurationObj(duration),
                       style: GoogleFonts.cairo(
                         fontSize: 10.5,
-                        fontWeight: FontWeight.w500,
-                        color: widget.textSecondary,
+                        fontWeight: isLive ? FontWeight.w700 : FontWeight.w500,
+                        color: isLive ? widget.gold : widget.textSecondary,
                       ),
                     ),
                   ],

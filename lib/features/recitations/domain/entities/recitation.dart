@@ -61,12 +61,38 @@ class Recitation extends Equatable {
     return RecitationType.rare;
   }
 
+  bool get isMahfel {
+    return recitationType == RecitationType.nahawand ||
+        collectionId.toLowerCase().contains('nahawand') ||
+        collectionId.toLowerCase().contains('mahfil') ||
+        collectionId.toLowerCase().contains('concert');
+  }
+
+  bool get isRadio {
+    final cid = collectionId.trim().toLowerCase();
+    if (cid == 'radio' || id == 'radio_minshawi' || id.startsWith('radio_')) {
+      return true;
+    }
+    if (isMahfel) return false;
+    var base = surahNameAr.trim();
+    if (base.contains(' - ')) {
+      base = base.split(' - ').first.trim();
+    }
+    if (base.startsWith('سورة ')) {
+      base = base.substring(5).trim();
+    }
+    return base == 'إذاعة القرآن الكريم' || base.startsWith('إذاعة ');
+  }
+
   String get sourceLabel {
+    if (isRadio) {
+      return 'إذاعة القرآن الكريم';
+    }
     return switch (recitationType) {
       RecitationType.murattal => 'المصحف المرتل',
       RecitationType.mujawwad => 'المصحف المجود',
-      RecitationType.rare => 'التلاوات النادرة',
-      RecitationType.nahawand => 'روائع النهاوند',
+      RecitationType.rare => 'المصحف المرتل - 1387 هـ',
+      RecitationType.nahawand => 'المحافل والتلاوات النادرة',
     };
   }
 
@@ -110,7 +136,7 @@ class Recitation extends Equatable {
   }
 
   String get trailingVerseOrLocation {
-    if (recitationType == RecitationType.nahawand) {
+    if (isMahfel) {
       final loc = cleanLocationLabel;
       if (hasNumericVerseRange) {
         return loc.isNotEmpty
@@ -118,10 +144,6 @@ class Recitation extends Equatable {
             : 'الآيات: ${verseRange.trim()}';
       }
       return loc;
-    }
-
-    if (hasNumericVerseRange) {
-      return 'الآيات: ${verseRange.trim()}';
     }
 
     return cleanLocationLabel;
@@ -135,18 +157,30 @@ class Recitation extends Equatable {
     return '$sourceLabel • $formattedDuration • $trailing';
   }
 
-  /// Returns the pure Surah name (and verse range if present),
-  /// cleanly stripped of location/occasion noise.
+  /// Returns the pure Surah name (and verse range if present only for Mahafil),
+  /// cleanly stripped of location/occasion noise and radio prefixes.
   String get cleanSurahTitleWithVerses {
     var pure = surahNameAr.trim();
     if (pure.contains(' - ')) {
       pure = pure.split(' - ').first.trim();
     }
 
-    final hasPrefix = pure.startsWith('سورة ') || pure.startsWith('المصحف');
+    if (isRadio) {
+      if (pure.startsWith('سورة ')) {
+        pure = pure.substring(5).trim();
+      }
+      return pure;
+    }
+
+    final hasPrefix = pure.startsWith('سورة ') ||
+        pure.startsWith('المصحف') ||
+        pure.startsWith('قصار السور') ||
+        pure.startsWith('سور ');
     final formattedName = hasPrefix ? pure : 'سورة $pure';
 
-    if (hasNumericVerseRange && !formattedName.contains(verseRange.trim())) {
+    if (isMahfel &&
+        hasNumericVerseRange &&
+        !formattedName.contains(verseRange.trim())) {
       return '$formattedName (الآيات: ${verseRange.trim()})';
     }
 
@@ -155,6 +189,12 @@ class Recitation extends Equatable {
 
   /// Returns the recording location, concert venue, or collection detail for the second line.
   String get cleanLocationOrDetail {
+    if (isRadio) {
+      return recordingLocation.trim().isNotEmpty
+          ? recordingLocation.trim()
+          : 'بث مباشر (24/7)';
+    }
+
     if (surahNameAr.contains(' - ')) {
       final parts = surahNameAr.split(' - ');
       final locPart = parts.sublist(1).join(' - ').trim();
