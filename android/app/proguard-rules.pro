@@ -69,6 +69,7 @@
 -keep class io.flutter.plugins.pathprovider.** { *; }
 -keep class io.flutter.plugins.urllauncher.** { *; }
 -keep class dev.fluttercommunity.plus.packageinfo.** { *; }
+-keep class com.crazecoder.openfile.** { *; }
 
 # ── General: keep attributes needed for stack-trace de-obfuscation ────────────
 -keepattributes SourceFile,LineNumberTable

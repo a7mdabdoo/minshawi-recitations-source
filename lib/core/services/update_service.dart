@@ -1,9 +1,10 @@
 import 'dart:convert';
-import 'dart:io' show HttpClient, Platform;
+import 'dart:io' show File, HttpClient, Platform;
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -169,9 +170,15 @@ class UpdateDialog extends StatefulWidget {
 }
 
 class _UpdateDialogState extends State<UpdateDialog> {
+  static const MethodChannel _installerChannel =
+      MethodChannel('com.minshawi.recitations/apk_installer');
+
   bool _isDownloading = false;
   double _downloadProgress = 0.0;
   String _statusText = '';
+  String? _downloadedApkPath;
+  bool _needsInstallPermission = false;
+  bool _hasLaunchedInstaller = false;
   CancelToken? _cancelToken;
 
   @override
@@ -180,12 +187,102 @@ class _UpdateDialogState extends State<UpdateDialog> {
     super.dispose();
   }
 
+  Future<bool> _canRequestPackageInstalls() async {
+    if (!Platform.isAndroid) return true;
+    try {
+      return await _installerChannel
+              .invokeMethod<bool>('canRequestPackageInstalls') ??
+          true;
+    } catch (_) {
+      return true;
+    }
+  }
+
+  Future<void> _openUnknownSourcesSettings() async {
+    try {
+      await _installerChannel.invokeMethod<bool>(
+        'openInstallUnknownAppsSettings',
+      );
+      if (mounted) {
+        setState(() {
+          _statusText =
+              'بعد تفعيل الإذن، ارجع للتطبيق واضغط «فتح المثبت الآن».';
+        });
+      }
+    } catch (_) {
+      await _fallbackExternalOpen();
+    }
+  }
+
+  Future<void> _launchDownloadedApk(String savePath) async {
+    final canInstall = await _canRequestPackageInstalls();
+    if (!canInstall) {
+      if (mounted) {
+        setState(() {
+          _isDownloading = false;
+          _needsInstallPermission = true;
+          _hasLaunchedInstaller = false;
+          _statusText =
+              'تم تنزيل التحديث بنجاح. فعّل خيار «السماح من هذا المصدر» لتثبيته.';
+        });
+      }
+      return;
+    }
+
+    bool opened = false;
+    try {
+      opened = await _installerChannel.invokeMethod<bool>(
+            'installApk',
+            {'path': savePath},
+          ) ??
+          false;
+    } catch (_) {
+      opened = false;
+    }
+
+    if (!opened) {
+      final result = await OpenFilex.open(
+        savePath,
+        type: 'application/vnd.android.package-archive',
+      );
+      opened = result.type == ResultType.done;
+    }
+
+    if (!mounted) return;
+
+    if (opened) {
+      setState(() {
+        _isDownloading = false;
+        _needsInstallPermission = false;
+        _hasLaunchedInstaller = true;
+        _statusText =
+            'اكتمل التنزيل وتم فتح مثبت الحزم. إذا لم يظهر بعد ثوانٍ اضغط «فتح المثبت الآن» أو اختر المتصفح.';
+      });
+    } else {
+      setState(() {
+        _isDownloading = false;
+        _needsInstallPermission = false;
+        _hasLaunchedInstaller = false;
+        _statusText = 'تعذّر فتح مثبت الحزم، جاري الفتح في المتصفح...';
+      });
+      await _fallbackExternalOpen();
+    }
+  }
+
   Future<void> _startUpdate() async {
     final isApk = widget.apkUrl.toLowerCase().contains('.apk');
 
     if (Platform.isAndroid && isApk) {
+      final cachedPath = _downloadedApkPath;
+      if (cachedPath != null && File(cachedPath).existsSync()) {
+        await _launchDownloadedApk(cachedPath);
+        return;
+      }
+
       setState(() {
         _isDownloading = true;
+        _needsInstallPermission = false;
+        _hasLaunchedInstaller = false;
         _downloadProgress = 0.0;
         _statusText = 'جاري بدء التحميل...';
       });
@@ -225,20 +322,14 @@ class _UpdateDialogState extends State<UpdateDialog> {
           },
         );
 
+        _downloadedApkPath = savePath;
         if (mounted) {
           setState(() {
-            _statusText = 'اكتمل التنزيل، جاري فتح مثبت الحزم...';
+            _statusText = 'اكتمل التنزيل، جاري تجهيز المثبت...';
           });
         }
 
-        final result = await OpenFilex.open(
-          savePath,
-          type: 'application/vnd.android.package-archive',
-        );
-
-        if (result.type != ResultType.done && mounted) {
-          await _fallbackExternalOpen();
-        }
+        await _launchDownloadedApk(savePath);
       } catch (e) {
         if (mounted && _cancelToken?.isCancelled != true) {
           setState(() {
@@ -448,6 +539,111 @@ class _UpdateDialogState extends State<UpdateDialog> {
                                   fontSize: 12,
                                   fontWeight: FontWeight.w700,
                                   color: AppColors.darkError,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ] else if (_needsInstallPermission || _hasLaunchedInstaller) ...[
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (_statusText.isNotEmpty) ...[
+                        Text(
+                          _statusText,
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.cairo(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: textSecondary,
+                            height: 1.45,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                      if (_needsInstallPermission) ...[
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: gold,
+                            foregroundColor: isDark
+                                ? AppColors.darkBackground
+                                : Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 0,
+                          ),
+                          onPressed: _openUnknownSourcesSettings,
+                          icon: const Icon(Icons.admin_panel_settings_rounded,
+                              size: 19),
+                          label: Text(
+                            'تفعيل إذن التثبيت من الإعدادات',
+                            style: GoogleFonts.cairo(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _needsInstallPermission
+                              ? (isDark
+                                  ? Colors.white.withAlpha(20)
+                                  : Colors.black.withAlpha(14))
+                              : gold,
+                          foregroundColor: _needsInstallPermission
+                              ? textPrimary
+                              : (isDark
+                                  ? AppColors.darkBackground
+                                  : Colors.white),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 0,
+                        ),
+                        onPressed: _startUpdate,
+                        icon: const Icon(Icons.install_mobile_rounded, size: 19),
+                        label: Text(
+                          'فتح المثبت الآن',
+                          style: GoogleFonts.cairo(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextButton(
+                              onPressed: _fallbackExternalOpen,
+                              child: Text(
+                                'تحميل عبر المتصفح',
+                                style: GoogleFonts.cairo(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: gold,
+                                ),
+                              ),
+                            ),
+                          ),
+                          if (!widget.forceUpdate)
+                            Expanded(
+                              child: TextButton(
+                                onPressed: () => Navigator.of(context).pop(),
+                                child: Text(
+                                  'إغلاق',
+                                  style: GoogleFonts.cairo(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: textSecondary,
+                                  ),
                                 ),
                               ),
                             ),
